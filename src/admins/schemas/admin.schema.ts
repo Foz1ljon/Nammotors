@@ -1,5 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ApiProperty } from '@nestjs/swagger';
+import { Client } from '../../clients/schemas/client.schemas';
+import mongoose from 'mongoose';
 
 @Schema({ versionKey: false })
 export class Admin {
@@ -46,6 +48,9 @@ export class Admin {
   })
   @Prop({ type: Boolean, default: false })
   super: boolean;
+
+  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Client' }] })
+  clients: Client[];
 }
 
 export const AdminSchema = SchemaFactory.createForClass(Admin);

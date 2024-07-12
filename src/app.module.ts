@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { env } from 'process';
 import { AdminsModule } from './admins/admins.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { ClientsModule } from './clients/clients.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
     MongooseModule.forRoot(env.DB_URL),
     AdminsModule,
     CloudinaryModule,
+    ClientsModule,
   ],
   controllers: [],
   providers: [],

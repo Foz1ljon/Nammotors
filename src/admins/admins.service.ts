@@ -90,7 +90,10 @@ export class AdminsService {
 
   async findById(id: string) {
     checkId(id);
-    const admin = await this.adminModel.findById(id)?.select('-password');
+    const admin = await this.adminModel
+      .findById(id)
+      ?.select('-password')
+      ?.populate('clients');
     if (!admin) throw new NotFoundException('Admin topilmadi!');
 
     return admin;
