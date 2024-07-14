@@ -8,6 +8,8 @@ import { ClientsModule } from './clients/clients.module';
 import { CategoryModule } from './category/category.module';
 import { ProductsModule } from './products/products.module';
 import { LocationsModule } from './locations/locations.module';
+import { ContractModule } from './contract/contract.module';
+import { ComponentsModule } from './components/components.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { LocationsModule } from './locations/locations.module';
     CategoryModule,
     ProductsModule,
     LocationsModule,
+    ContractModule,
+    ComponentsModule,
   ],
   controllers: [],
   providers: [],
