@@ -4,6 +4,7 @@ import { IsNotEmpty, IsString } from 'class-validator';
 export class SignInAdminDto {
   @ApiProperty({
     type: String,
+    example: 'fozil',
     description: 'Username of the admin',
     required: true,
   })
@@ -13,6 +14,7 @@ export class SignInAdminDto {
 
   @ApiProperty({
     type: String,
+    example: 'Fozil0990',
     description: 'Password of the admin',
     required: true,
   })

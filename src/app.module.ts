@@ -5,6 +5,9 @@ import { env } from 'process';
 import { AdminsModule } from './admins/admins.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { ClientsModule } from './clients/clients.module';
+import { CategoryModule } from './category/category.module';
+import { ProductsModule } from './products/products.module';
+import { LocationsModule } from './locations/locations.module';
 
 @Module({
   imports: [
@@ -16,6 +19,9 @@ import { ClientsModule } from './clients/clients.module';
     AdminsModule,
     CloudinaryModule,
     ClientsModule,
+    CategoryModule,
+    ProductsModule,
+    LocationsModule,
   ],
   controllers: [],
   providers: [],

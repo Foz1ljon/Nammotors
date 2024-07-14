@@ -5,30 +5,24 @@ import {
   v2 as cloudinary,
 } from 'cloudinary';
 import toStream = require('buffer-to-stream');
-import { promisify } from 'util';
 
 @Injectable()
 export class CloudinaryService {
   async uploadImage(
     file: Express.Multer.File,
   ): Promise<UploadApiResponse | UploadApiErrorResponse> {
-    const uploadStream = promisify(
-      cloudinary.uploader.upload_stream.bind(cloudinary.uploader),
-    );
-
-    try {
-      const result = await uploadStream((error, result) => {
-        if (error) {
-          throw error;
-        }
-        return result;
-      });
+    return new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        (error, result) => {
+          if (error) {
+            return reject(error);
+          }
+          resolve(result);
+        },
+      );
 
       toStream(file.buffer).pipe(uploadStream);
-      return result;
-    } catch (error) {
-      throw error;
-    }
+    });
   }
 
   async removeImage(

@@ -6,10 +6,12 @@ import { Admin, AdminSchema } from './schemas/admin.schema';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { env } from 'process';
+import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Admin.name, schema: AdminSchema }]),
+    CloudinaryModule,
     ConfigModule.forRoot({ envFilePath: '.env' }),
     JwtModule.register({
       secret: env.JWT_ACCESS_TOKEN,

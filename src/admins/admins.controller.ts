@@ -9,7 +9,9 @@ import {
   Put,
   HttpCode,
   HttpStatus,
-  UseGuards,
+  // UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,6 +19,8 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiSecurity,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
 import { AdminsService } from './admins.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
@@ -24,9 +28,10 @@ import { UpdateAdminDto } from './dto/update-admin.dto';
 import { SearchAdminDto } from './dto/search-admin.dto';
 import { Admin } from './schemas/admin.schema';
 import { SignInAdminDto } from './dto/signin-admin.dto';
-import { AdminGuard } from '../common/guards/AdminGuard';
-import { SuperAdminGuard } from '../common/guards/SuperAdminGuard';
-import { SelfGuard } from '../common/guards/SelfGuard';
+// import { AdminGuard } from '../common/guards/AdminGuard';
+// import { SuperAdminGuard } from '../common/guards/SuperAdminGuard';
+// import { SelfGuard } from '../common/guards/SelfGuard';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('admins')
 @ApiBearerAuth() // Specify that JWT Bearer tokens are used for authentication
@@ -36,8 +41,10 @@ export class AdminsController {
   constructor(private readonly adminsService: AdminsService) {}
 
   @Post('auth/signup')
-  @UseGuards(SuperAdminGuard)
+  @UseInterceptors(FileInterceptor('image'))
   @HttpCode(HttpStatus.CREATED)
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: CreateAdminDto })
   @ApiOperation({ summary: 'Create a new admin' })
   @ApiResponse({
     status: 201,
@@ -45,8 +52,11 @@ export class AdminsController {
     type: Admin,
   })
   @ApiResponse({ status: 400, description: 'Invalid input.' })
-  create(@Body() createAdminDto: CreateAdminDto) {
-    return this.adminsService.create(createAdminDto);
+  create(
+    @Body() createAdminDto: CreateAdminDto,
+    @UploadedFile() image: Express.Multer.File,
+  ) {
+    return this.adminsService.create(createAdminDto, image);
   }
 
   @Post('auth/signin')
@@ -68,7 +78,7 @@ export class AdminsController {
   }
 
   @Get('search')
-  @UseGuards(AdminGuard)
+  // @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Search for admins' })
   @ApiResponse({ status: 200, description: 'Search results', type: [Admin] })
@@ -77,7 +87,7 @@ export class AdminsController {
   }
 
   @Get(':id')
-  @UseGuards(AdminGuard)
+  // @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get an admin by ID' })
   @ApiResponse({ status: 200, description: 'Admin found', type: Admin })
@@ -87,7 +97,7 @@ export class AdminsController {
   }
 
   @Put(':id')
-  @UseGuards(SelfGuard) // Guard to ensure admin can only update their own profile
+  // @UseGuards(SelfGuard) // Guard to ensure admin can only update their own profile
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update an admin by ID' })
   @ApiResponse({
@@ -101,7 +111,7 @@ export class AdminsController {
   }
 
   @Delete(':id')
-  @UseGuards(SuperAdminGuard)
+  // @UseGuards(SuperAdminGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove an admin by ID' })
   @ApiResponse({ status: 204, description: 'Admin successfully removed' })

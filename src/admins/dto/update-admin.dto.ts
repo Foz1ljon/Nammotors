@@ -5,6 +5,7 @@ export class UpdateAdminDto {
   @ApiProperty({ type: String, description: 'The image URL' })
   @ApiProperty({
     type: String,
+    example: 'Foziljon',
     description: 'First name of the admin',
   })
   @IsOptional()
@@ -13,6 +14,7 @@ export class UpdateAdminDto {
 
   @ApiProperty({
     type: String,
+    example: 'Faxriddinov',
     description: 'Last name of the admin',
   })
   @IsOptional()
@@ -21,6 +23,7 @@ export class UpdateAdminDto {
 
   @ApiProperty({
     type: String,
+    example: 'fozil09',
     description: 'Username of the admin',
   })
   @IsNotEmpty()
@@ -29,6 +32,7 @@ export class UpdateAdminDto {
 
   @ApiProperty({
     type: String,
+    example: 'Fozil0993',
     description: 'Password of the admin',
   })
   @IsOptional()

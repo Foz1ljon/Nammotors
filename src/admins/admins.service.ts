@@ -13,12 +13,14 @@ import * as bcrypt from 'bcrypt';
 import { SignInAdminDto } from './dto/signin-admin.dto';
 import { checkId } from '../common/utils/check-mongodbId';
 import { SearchAdminDto } from './dto/search-admin.dto';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Injectable()
 export class AdminsService {
   constructor(
     @InjectModel(Admin.name) private adminModel: Model<Admin>,
     private jwtService: JwtService,
+    private cloudinaryService: CloudinaryService,
   ) {}
 
   getToken(data: any) {
@@ -29,22 +31,28 @@ export class AdminsService {
     return { token };
   }
 
-  async create(createAdminDto: CreateAdminDto) {
+  async create(createAdminDto: CreateAdminDto, photo: Express.Multer.File) {
     const admin = await this.adminModel.findOne({
       username: createAdminDto.username,
     });
-    if (!admin)
+    if (admin)
       throw new BadRequestException("Bu username allaqachon ro'yxatdan o'tgan");
 
     createAdminDto.password = await bcrypt.hash(createAdminDto.password, 7);
 
-    const data = await this.adminModel.create(createAdminDto);
+    if (!photo) throw new BadRequestException('Image is requirred!');
+    const img = (await this.cloudinaryService.uploadImage(photo)).url;
+
+    const data = await this.adminModel.create({
+      image: img,
+      ...createAdminDto,
+    });
 
     const token = this.getToken(data);
 
     return {
-      id: data._id,
-      token,
+      data,
+      ...token,
     };
   }
 
@@ -52,12 +60,15 @@ export class AdminsService {
     const admin = await this.adminModel.findOne({
       username: loginAdminDto.username,
     });
+
     if (!admin)
       throw new NotFoundException('Admin topilmadi! yoki Parol no`tog`ri');
+
     const isMatch = await bcrypt.compare(
       loginAdminDto.password,
       admin.password,
     );
+
     if (!isMatch)
       throw new NotFoundException('Admin topilmadi! yoki Parol no`tog`ri');
     const token = this.getToken(admin);
@@ -66,10 +77,6 @@ export class AdminsService {
       token,
     };
   }
-
-  //  Upload image api here...
-
-  //  Upload image api here...
 
   async search(searchAdminDto: SearchAdminDto): Promise<Admin[]> {
     const { username, firstName, lastName } = searchAdminDto;
