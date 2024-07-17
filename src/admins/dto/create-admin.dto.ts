@@ -11,7 +11,7 @@ export class CreateAdminDto {
     description: 'First name of the admin',
     required: true,
   })
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Ism bo`sh bo`lmasligi kerak!' })
   @IsString()
   fname: string;
 
@@ -21,7 +21,7 @@ export class CreateAdminDto {
     description: 'Last name of the admin',
     required: true,
   })
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Familiya bo`sh bo`lmasligi kerak!' })
   @IsString()
   lname: string;
 
@@ -31,7 +31,7 @@ export class CreateAdminDto {
     description: 'Username of the admin',
     required: true,
   })
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Username bo`sh bo`lmasligi kerak!' })
   @IsString()
   username: string;
 
@@ -41,7 +41,7 @@ export class CreateAdminDto {
     description: 'Password of the admin',
     required: true,
   })
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Parol bo`sh bo`lmasligi kerak!' })
   @IsString()
   password: string;
 }

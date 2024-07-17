@@ -1,46 +1,44 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class UpdateProductDto {
   @ApiProperty({
     description: 'The brand of the product',
     example: 'Toyota',
   })
+  @IsOptional()
   @IsString()
-  readonly marka: string;
-
-  @ApiProperty({
-    description: 'The price of the product',
-    example: 15000,
-  })
-  @IsNumber()
-  readonly price: number;
+  readonly marka?: string;
 
   @ApiProperty({
     description: 'The power rating of the product in kilowatts',
     example: '200kW',
   })
+  @IsOptional()
   @IsString()
-  readonly kwt: string;
+  readonly kwt?: string;
 
   @ApiProperty({
     description: 'The turnover of the product',
     example: '5000 units',
   })
+  @IsOptional()
   @IsString()
-  readonly turnover: string;
+  readonly turnover?: string;
 
   @ApiProperty({
     description: 'The category of the product',
     example: 'Electronics',
   })
+  @IsOptional()
   @IsString()
-  readonly category: string;
+  readonly category?: string;
 
   @ApiProperty({
     description: 'The location of the product',
     example: 'Warehouse A',
   })
+  @IsOptional()
   @IsString()
-  readonly location: string;
+  readonly location?: string;
 }

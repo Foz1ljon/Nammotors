@@ -1,4 +1,4 @@
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ApiProperty } from '@nestjs/swagger';
 
 @Schema({ versionKey: false })
@@ -13,3 +13,5 @@ export class Location {
   @Prop({ type: Number, required: true })
   count: number;
 }
+
+export const LocationSchema = SchemaFactory.createForClass(Location);

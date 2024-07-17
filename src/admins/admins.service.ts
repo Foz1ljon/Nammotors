@@ -74,7 +74,7 @@ export class AdminsService {
     const token = this.getToken(admin);
     return {
       id: admin._id,
-      token,
+      ...token,
     };
   }
 
@@ -120,28 +120,29 @@ export class AdminsService {
       const findUsername = await this.adminModel.findOne({
         username: updateAdminDto.username,
       });
-      if (!findUsername) throw new NotFoundException('Admin topilmadi!');
+      if (findUsername)
+        throw new BadRequestException('Bu username allaqachon mavjud!');
       admin.username = updateAdminDto.username;
     }
     if (updateAdminDto.password) {
-      const isMatch = await bcrypt.compare(
-        updateAdminDto.password,
-        admin.password,
-      );
-      if (!isMatch) throw new BadRequestException('Parol no`g`ri');
       admin.password = updateAdminDto.password;
     }
     await admin.save();
 
     return this.adminModel
       .findByIdAndUpdate(id, admin, { new: true })
-      .select('-password');
+      .select('-password')
+      .select('-super');
   }
 
   async remove(id: string) {
     checkId(id);
     const admin = await this.adminModel.findById(id)?.select('-password');
     if (!admin) throw new NotFoundException('Admin topilmadi!');
-    return 'Muvoffaqiyatli o`chirildi!';
+    console.log('hello');
+
+    const data = await this.adminModel.findByIdAndDelete(id);
+
+    return { message: 'Muvoffaqiyatli o`chirildi!', ...data };
   }
 }

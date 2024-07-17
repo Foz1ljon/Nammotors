@@ -8,7 +8,7 @@ export class SignInAdminDto {
     description: 'Username of the admin',
     required: true,
   })
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Username bo`sh bo`lmasligi kerak!' })
   @IsString()
   username: string;
 
@@ -18,7 +18,7 @@ export class SignInAdminDto {
     description: 'Password of the admin',
     required: true,
   })
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Parol bo`sh bo`lmasligi kerak!' })
   @IsString()
   password: string;
 }

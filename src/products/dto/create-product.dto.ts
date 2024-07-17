@@ -1,8 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber } from 'class-validator';
+import { IsString } from 'class-validator';
 
 export class CreateProductDto {
-  @ApiProperty({ description: 'product image ', example: 'photo.img' })
+  @ApiProperty({
+    type: String,
+    format: 'binary',
+  })
   img: any;
 
   @ApiProperty({
@@ -11,13 +14,6 @@ export class CreateProductDto {
   })
   @IsString()
   readonly marka: string;
-
-  @ApiProperty({
-    description: 'The price of the product',
-    example: 15000,
-  })
-  @IsNumber()
-  readonly price: number;
 
   @ApiProperty({
     description: 'The power rating of the product in kilowatts',

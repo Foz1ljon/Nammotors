@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class UpdateAdminDto {
   @ApiProperty({ type: String, description: 'The image URL' })
@@ -26,7 +26,7 @@ export class UpdateAdminDto {
     example: 'fozil09',
     description: 'Username of the admin',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   username?: string;
 
