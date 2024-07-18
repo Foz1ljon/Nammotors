@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Headers,
 } from '@nestjs/common';
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/create-client.dto';
@@ -42,8 +43,11 @@ export class ClientsController {
     type: Client,
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
-  create(@Body() createClientDto: CreateClientDto) {
-    return this.clientsService.create(createClientDto);
+  create(
+    @Body() createClientDto: CreateClientDto,
+    @Headers('Authorization') token: string,
+  ) {
+    return this.clientsService.create(createClientDto, token);
   }
 
   @Get('search')
@@ -75,8 +79,12 @@ export class ClientsController {
     type: Client,
   })
   @ApiResponse({ status: 404, description: 'Client not found' })
-  update(@Param('id') id: string, @Body() updateClientDto: UpdateClientDto) {
-    return this.clientsService.update(id, updateClientDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateClientDto: UpdateClientDto,
+    @Headers('Authorization') token: string,
+  ) {
+    return this.clientsService.update(id, updateClientDto, token);
   }
 
   @Delete(':id')
@@ -85,7 +93,7 @@ export class ClientsController {
   @ApiOperation({ summary: 'Delete a client' })
   @ApiResponse({ status: 200, description: 'Client deleted successfully' })
   @ApiResponse({ status: 404, description: 'Client not found' })
-  remove(@Param('id') id: string) {
-    return this.clientsService.remove(id);
+  remove(@Param('id') id: string, @Headers('Authorization') token: string) {
+    return this.clientsService.remove(id, token);
   }
 }

@@ -7,14 +7,12 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { ClientsModule } from './clients/clients.module';
 import { CategoryModule } from './category/category.module';
 import { ProductsModule } from './products/products.module';
-import { LocationsModule } from './locations/locations.module';
 import { ContractModule } from './contract/contract.module';
 import { ComponentsModule } from './components/components.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: '.env',
       isGlobal: true,
     }),
     MongooseModule.forRoot(env.DB_URL),
@@ -23,7 +21,7 @@ import { ComponentsModule } from './components/components.module';
     ClientsModule,
     CategoryModule,
     ProductsModule,
-    LocationsModule,
+
     ContractModule,
     ComponentsModule,
   ],

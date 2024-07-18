@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -6,67 +10,117 @@ import { Model } from 'mongoose';
 import { Client } from './schemas/client.schemas';
 import { SearchClientDto } from './dto/search-client.dto';
 import { checkId } from '../common/utils/check-mongodbId';
+import { Admin } from '../admins/schemas/admin.schema';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class ClientsService {
-  constructor(@InjectModel(Client.name) private clientModel: Model<Client>) {}
+  private readonly logger = new Logger(ClientsService.name);
 
-  create(createClientDto: CreateClientDto) {
-    return this.clientModel.create(createClientDto);
+  constructor(
+    @InjectModel(Client.name) private clientModel: Model<Client>,
+    @InjectModel(Admin.name) private adminModel: Model<Admin>,
+    private jwtService: JwtService,
+    private configService: ConfigService,
+  ) {}
+
+  async decodeToken(token: string) {
+    const data = token.split(' ')[1];
+    try {
+      const decoded = await this.jwtService.verify(data, {
+        secret: this.configService.get<string>('JWT_ACCESS_TOKEN'),
+      });
+      return decoded.id;
+    } catch (error) {
+      this.logger.error('Invalid token', error.stack);
+      throw new UnauthorizedException('Invalid token');
+    }
   }
 
+  async create(createClientDto: CreateClientDto, token: string) {
+    const id = await this.decodeToken(token);
+    checkId(id);
+
+    const findAdmin = await this.adminModel.findById(id).exec();
+    if (!findAdmin) throw new NotFoundException('Admin not found');
+
+    const data = await this.clientModel.create(createClientDto);
+
+    findAdmin.clients.push(data);
+    await findAdmin.save();
+
+    return { message: 'Client created successfully!', data };
+  }
   async search(searchClientDto: SearchClientDto): Promise<Client[]> {
-    const { fname, phone_number, firma } = searchClientDto;
+    const { query } = searchClientDto;
+    const queries: any = {};
 
-    const query: any = {};
-    if (fname) {
-      query.fname = { $regex: fname, $options: 'i' };
-    }
-    if (phone_number) {
-      query.phone_number = { $regex: phone_number, $options: 'i' };
-    }
-    if (firma) {
-      query.firma = { $regex: firma, $options: 'i' };
+    if (query) {
+      queries.$or = [
+        { fname: { $regex: query, $options: 'i' } },
+        { phone_number: { $regex: query, $options: 'i' } },
+        { firma: { $regex: query, $options: 'i' } },
+        // Add more fields if needed
+      ];
     }
 
-    return this.clientModel.find(query).exec();
+    return this.clientModel.find(queries).exec();
   }
 
   async findById(id: string) {
     checkId(id);
-    const client = await this.clientModel.findById(id);
-    if (!client) throw new NotFoundException('Mijoz topilmadi!');
+    const client = await this.clientModel.findById(id).exec();
+    if (!client) throw new NotFoundException('Client not found');
     return client;
   }
 
-  async update(id: string, updateClientDto: UpdateClientDto) {
+  async update(id: string, updateClientDto: UpdateClientDto, token: string) {
+    const adminId = await this.decodeToken(token);
     checkId(id);
+    checkId(adminId);
+
+    const admin = await this.adminModel.findById(adminId);
+    if (!admin) throw new NotFoundException('Admin not found');
+
     const client = await this.clientModel.findById(id);
-    if (!client) throw new NotFoundException('Mijoz topilmadi!');
-    const { fname, phone_number, firma, type, location } = updateClientDto;
+    if (!client) throw new NotFoundException('Client not found');
 
-    if (fname) {
-      client.fname = fname;
-    }
-    if (phone_number) {
-      client.phone_number = phone_number;
-    }
-    if (firma) {
-      client.firma = firma;
-    }
-    if (type) {
-      client.type = type;
-    }
-    if (location) {
-      client.location = location;
+    if (!admin.clients.includes(client.id)) {
+      throw new UnauthorizedException('Sizda ruxsat yo`q');
     }
 
-    return this.clientModel.findByIdAndUpdate(id, client);
+    await this.clientModel.findByIdAndUpdate(id, updateClientDto, {
+      new: true,
+    });
+    return client;
   }
 
-  async remove(id: string) {
+  async remove(id: string, token: string) {
+    const adminId = await this.decodeToken(token);
     checkId(id);
+    checkId(adminId);
+
+    const admin = await this.adminModel.findById(adminId);
+    if (!admin) throw new NotFoundException('Admin topilmadi');
+
     const client = await this.clientModel.findById(id);
-    if (!client) throw new NotFoundException('Mijoz topilmadi!');
+    if (!client) throw new NotFoundException('Mijoz topilmadi');
+
+    if (!admin.clients.includes(client.id)) {
+      throw new UnauthorizedException('Sizda ruxsat yo`q');
+    }
+
+    const clients = admin.clients.filter(
+      (clientId) => clientId.toString() !== client.id.toString(),
+    );
+    console.log(clients);
+
+    admin.clients = clients;
+    await admin.save();
+    await this.clientModel.findByIdAndDelete(id);
+
+    return { message: 'Mijoz o`chirildi!' };
   }
 }

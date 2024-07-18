@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import mongoose, { Document } from 'mongoose';
 import { ApiProperty } from '@nestjs/swagger';
+import { Category } from '../../category/schemas/category.schemas';
 
 @Schema({ versionKey: false })
 export class Product extends Document {
@@ -14,6 +15,13 @@ export class Product extends Document {
   })
   @Prop()
   marka: string;
+
+  @ApiProperty({
+    description: 'Product count',
+    example: '234',
+  })
+  @Prop()
+  count: string;
 
   @ApiProperty({
     description: 'The power rating of the product in kilowatts',
@@ -33,14 +41,18 @@ export class Product extends Document {
     description: 'The category of the product',
     example: 'Electronics',
   })
-  @Prop()
-  category: string;
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
+    required: true,
+  })
+  category: Category;
 
   @ApiProperty({
     description: 'The location of the product',
     example: 'Warehouse A',
   })
-  @Prop()
+  @Prop({})
   location: string;
 }
 

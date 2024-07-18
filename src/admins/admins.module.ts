@@ -7,10 +7,14 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { env } from 'process';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
+import { Client, ClientSchema } from '../clients/schemas/client.schemas';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Admin.name, schema: AdminSchema }]),
+    MongooseModule.forFeature([
+      { name: Admin.name, schema: AdminSchema },
+      { name: Client.name, schema: ClientSchema },
+    ]),
     CloudinaryModule,
     ConfigModule.forRoot({ envFilePath: '.env' }),
     JwtModule.register({

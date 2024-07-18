@@ -28,7 +28,7 @@ import { SearchProductDto } from './dto/search-product.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('products')
-@Controller('products')
+@Controller('product')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 

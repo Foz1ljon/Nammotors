@@ -1,7 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ApiProperty } from '@nestjs/swagger';
 import { Client } from '../../clients/schemas/client.schemas';
-import mongoose from 'mongoose';
+import mongoose, { HydratedDocument } from 'mongoose';
+
+export type AdminDocument = HydratedDocument<Admin>;
 
 @Schema({ versionKey: false })
 export class Admin {

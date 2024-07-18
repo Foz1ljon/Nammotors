@@ -92,7 +92,7 @@ export class AdminsService {
       query.lastName = { $regex: lastName, $options: 'i' };
     }
 
-    return this.adminModel.find(query).exec();
+    return this.adminModel.find(query).populate('clients');
   }
 
   async findById(id: string) {

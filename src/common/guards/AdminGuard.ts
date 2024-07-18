@@ -17,23 +17,23 @@ export class AdminGuard implements CanActivate {
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
-      throw new UnauthorizedException('Unauthorized access token');
+      throw new UnauthorizedException('Unauthorized access token1');
     }
 
     const [bearer, token] = authHeader.split(' ');
 
     if (bearer !== 'Bearer' || !token) {
-      throw new UnauthorizedException('Unauthorized access token');
+      throw new UnauthorizedException('Unauthorized access token2');
     }
 
     try {
       const user: Partial<Admin> = await this.jwtService.verify(token, {
-        secret: env.ACCESS_TOKEN_KEY,
+        secret: env.JWT_ACCESS_TOKEN,
       });
-      if (!user) throw new UnauthorizedException('Unauthorized access token');
+      if (!user) throw new UnauthorizedException('Unauthorized access token3');
       return true;
     } catch (error) {
-      throw new UnauthorizedException('Unauthorized access token');
+      throw new UnauthorizedException('Unauthorized access token4');
     }
   }
 }

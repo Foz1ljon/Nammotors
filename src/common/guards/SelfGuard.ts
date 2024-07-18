@@ -27,7 +27,7 @@ export class SelfGuard implements CanActivate {
 
     try {
       const decodedToken = this.jwtService.verify(token, {
-        secret: env.ACCESS_TOKEN_KEY,
+        secret: env.JWT_ACCESS_TOKEN,
       });
 
       if (!decodedToken) {

@@ -8,6 +8,7 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,8 +21,9 @@ import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category } from './schemas/category.schemas';
+import { AdminGuard } from '../common/guards/AdminGuard';
 
-@ApiTags('categories')
+@ApiTags('category')
 @Controller('category')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
@@ -35,6 +37,7 @@ export class CategoryController {
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
   @ApiBody({ type: CreateCategoryDto })
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createCategoryDto: CreateCategoryDto) {
     return this.categoryService.create(createCategoryDto);
@@ -48,6 +51,7 @@ export class CategoryController {
     type: [Category],
   })
   @ApiResponse({ status: 404, description: 'Categories not found' })
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.OK)
   findAll() {
     return this.categoryService.findAll();
@@ -62,6 +66,7 @@ export class CategoryController {
     type: Category,
   })
   @ApiResponse({ status: 404, description: 'Category not found' })
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.OK)
   findOne(@Param('id') id: string) {
     return this.categoryService.findOne(id);
@@ -77,6 +82,7 @@ export class CategoryController {
   })
   @ApiResponse({ status: 404, description: 'Category not found' })
   @ApiBody({ type: UpdateCategoryDto })
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.OK)
   update(
     @Param('id') id: string,
@@ -93,6 +99,7 @@ export class CategoryController {
     description: 'The category has been successfully deleted.',
   })
   @ApiResponse({ status: 404, description: 'Category not found' })
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string) {
     return this.categoryService.remove(id);

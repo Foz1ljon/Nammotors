@@ -30,13 +30,4 @@ export class CreateClientDto {
   @IsString()
   @IsNotEmpty()
   location: string;
-
-  @ApiProperty({
-    type: String,
-    description: 'Admin id',
-    example: '3f09c0452cg54',
-  })
-  @IsNotEmpty()
-  @IsString()
-  admin: string;
 }
