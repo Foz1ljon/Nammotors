@@ -14,6 +14,7 @@ import { SignInAdminDto } from './dto/signin-admin.dto';
 import { checkId } from '../common/utils/check-mongodbId';
 import { SearchAdminDto } from './dto/search-admin.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { ClientsService } from '../clients/clients.service';
 
 @Injectable()
 export class AdminsService {
@@ -21,6 +22,7 @@ export class AdminsService {
     @InjectModel(Admin.name) private adminModel: Model<Admin>,
     private jwtService: JwtService,
     private cloudinaryService: CloudinaryService,
+    private clientService: ClientsService,
   ) {}
 
   getToken(data: any) {
@@ -105,11 +107,28 @@ export class AdminsService {
 
     return admin;
   }
+  async getme(token: string) {
+    const id = await this.clientService.decodeToken(token);
+    checkId(id);
+    const admin = await this.adminModel.findById(id).populate('clients');
+    if (!admin) throw new NotFoundException('Admin Topilmadi!');
+    return admin;
+  }
 
-  async update(id: string, updateAdminDto: UpdateAdminDto) {
+  async update(
+    id: string,
+    updateAdminDto: UpdateAdminDto,
+    photo: Express.Multer.File,
+  ) {
     checkId(id);
     const admin = await this.adminModel.findById(id)?.select('-password');
     if (!admin) throw new NotFoundException('Admin topilmadi!');
+    if (photo) {
+      await this.cloudinaryService.removeImageByUrl(admin.image);
+      updateAdminDto.image = (
+        await this.cloudinaryService.uploadImage(photo)
+      ).url;
+    }
     if (updateAdminDto.fname) {
       admin.fname = updateAdminDto.fname;
     }
@@ -120,12 +139,12 @@ export class AdminsService {
       const findUsername = await this.adminModel.findOne({
         username: updateAdminDto.username,
       });
-      if (findUsername)
+      if (findUsername && findUsername.id !== id)
         throw new BadRequestException('Bu username allaqachon mavjud!');
       admin.username = updateAdminDto.username;
     }
     if (updateAdminDto.password) {
-      admin.password = updateAdminDto.password;
+      admin.password = await bcrypt.hash(updateAdminDto.password, 7);
     }
     await admin.save();
 

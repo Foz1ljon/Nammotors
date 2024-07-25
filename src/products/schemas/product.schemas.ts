@@ -17,11 +17,23 @@ export class Product extends Document {
   marka: string;
 
   @ApiProperty({
+    description: 'Component name',
+    example: 'Zapchast',
+  })
+  @Prop()
+  @ApiProperty({
     description: 'Product count',
     example: '234',
   })
   @Prop()
   count: string;
+
+  @ApiProperty({
+    description: 'Product price',
+    example: '12000',
+  })
+  @Prop()
+  price: string;
 
   @ApiProperty({
     description: 'The power rating of the product in kilowatts',

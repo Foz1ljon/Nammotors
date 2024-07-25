@@ -8,6 +8,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { env } from 'process';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { Client, ClientSchema } from '../clients/schemas/client.schemas';
+import { ClientsService } from '../clients/clients.service';
 
 @Module({
   imports: [
@@ -23,6 +24,6 @@ import { Client, ClientSchema } from '../clients/schemas/client.schemas';
     }),
   ],
   controllers: [AdminsController],
-  providers: [AdminsService],
+  providers: [AdminsService, ClientsService],
 })
 export class AdminsModule {}

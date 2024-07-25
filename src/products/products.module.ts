@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Product, ProductSchema } from './schemas/product.schemas';
 import { Category, CategorySchema } from '../category/schemas/category.schemas';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { CloudinaryModule } from '../cloudinary/cloudinary.module';
       { name: Category.name, schema: CategorySchema },
     ]),
     CloudinaryModule,
+    JwtModule,
   ],
   controllers: [ProductsController],
   providers: [ProductsService],

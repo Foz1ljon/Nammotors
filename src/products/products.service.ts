@@ -1,3 +1,4 @@
+import { CreateComponentDto } from './dto/create-component.dto';
 import {
   BadRequestException,
   Injectable,
@@ -12,6 +13,7 @@ import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { SearchProductDto } from './dto/search-product.dto';
 import { Category } from '../category/schemas/category.schemas';
 import { checkId } from '../common/utils/check-mongodbId';
+import { UpdateComponentDto } from './dto/update-component.dto';
 
 @Injectable()
 export class ProductsService {
@@ -35,41 +37,101 @@ export class ProductsService {
     ).populate('category');
   }
 
+  // Zapchastlarni yaratish
+
+  async createComponent(
+    createComponentDto: CreateComponentDto,
+    img: Express.Multer.File,
+  ) {
+    if (!img) throw new BadRequestException('Image is requirred!');
+    const photo = (await this.cloudinaryService.uploadImage(img)).url;
+    return this.productModel.create({ img: photo, ...createComponentDto });
+  }
+
+  // qidiruv
   async search(searchProductDto: SearchProductDto): Promise<Product[]> {
-    const { marka, price, kwt, turnover } = searchProductDto;
+    const { query } = searchProductDto;
+    const queries: any = {};
 
-    const query: any = {};
-
-    if (marka) {
-      query.marka = { $regex: marka, $options: 'i' };
-    }
-    if (price) {
-      query.price = { $regex: price, $options: 'i' };
-    }
-    if (kwt) {
-      query.kwt = { $regex: kwt, $options: 'i' };
-    }
-    if (turnover) {
-      query.turnover = { $regex: turnover, $options: 'i' };
+    if (query) {
+      queries.$or = [
+        { marka: { $regex: query, $options: 'i' } },
+        { kwt: { $regex: query, $options: 'i' } },
+        { turnover: { $regex: query, $options: 'i' } },
+        { location: { $regex: query, $options: 'i' } },
+      ];
     }
 
-    return this.productModel.find(query).exec();
+    return this.productModel.find(queries).exec();
   }
 
-  findOne(id: string) {
-    return `This action returns a #${id} product`;
+  async findOne(id: string) {
+    checkId(id);
+    const findProd = await this.productModel.findById(id).populate('category');
+    if (!findProd) throw new NotFoundException('Mahsulot topilmadi!');
+    delete findProd.category.products;
+
+    return findProd;
   }
 
-  update(
+  async updateComp(
+    id: string,
+    updateComponentDto: UpdateComponentDto,
+    img?: Express.Multer.File,
+  ) {
+    const findProd = await this.productModel.findById(id);
+    if (!findProd) throw new NotFoundException('Mahsulot topilmadi!');
+    let photo: any;
+    if (img) {
+      photo = await this.cloudinaryService.uploadImage(img);
+      await this.cloudinaryService.removeImageByUrl(findProd.img);
+    }
+
+    const data = await this.productModel.findByIdAndUpdate(
+      id,
+      {
+        img: photo.url,
+        ...updateComponentDto,
+      },
+      { new: true },
+    );
+
+    return { message: 'Yangilandi!', data };
+  }
+
+  async update(
     id: string,
     updateProductDto: UpdateProductDto,
     img?: Express.Multer.File,
   ) {
-    return img;
-    return updateProductDto;
+    checkId(id);
+    const findProd = await this.productModel.findById(id).populate('category');
+    if (!findProd) throw new NotFoundException('Mahsulot topilmadi!');
+    let photo: any;
+    if (img) {
+      photo = await this.cloudinaryService.uploadImage(img);
+      await this.cloudinaryService.removeImageByUrl(findProd.img);
+    }
+    if (updateProductDto.category) {
+      checkId(updateProductDto.category);
+      const find = await this.categoryModel.findById(updateProductDto.category);
+      if (!find) throw new NotFoundException('Kategoriya topilmadi!');
+    }
+    const data = await this.productModel.findByIdAndUpdate(
+      id,
+      {
+        img: photo.url,
+        ...updateProductDto,
+      },
+      { new: true },
+    );
+    return { message: 'Yangilandi!', data };
   }
 
-  remove(id: string) {
-    return `This action removes a #${id} product`;
+  async remove(id: string) {
+    checkId(id);
+    const findProd = await this.productModel.findById(id);
+    if (!findProd) throw new NotFoundException('Mahsulot topilmadi!');
+    await this.productModel.findByIdAndDelete(id);
   }
 }

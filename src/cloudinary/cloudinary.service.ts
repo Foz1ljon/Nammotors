@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import {
   UploadApiErrorResponse,
   UploadApiResponse,
@@ -34,5 +34,21 @@ export class CloudinaryService {
     } catch (error) {
       throw error;
     }
+  }
+
+  async removeImageByUrl(
+    url: string,
+  ): Promise<{ result: string } | UploadApiErrorResponse> {
+    const publicId = this.extractPublicIdFromUrl(url);
+    if (!publicId) {
+      throw new BadRequestException('Invalid URL');
+    }
+    return this.removeImage(publicId);
+  }
+
+  private extractPublicIdFromUrl(url: string): string | null {
+    const urlPattern = /\/upload\/(?:v\d+\/)?([^\.]+)\.[a-zA-Z]+$/;
+    const match = url.match(urlPattern);
+    return match ? match[1] : null;
   }
 }

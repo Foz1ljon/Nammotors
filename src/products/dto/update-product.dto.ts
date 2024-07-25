@@ -41,4 +41,7 @@ export class UpdateProductDto {
   @IsOptional()
   @IsString()
   readonly location?: string;
+  @ApiProperty({ type: String, format: 'binary' })
+  @IsOptional()
+  img?: any;
 }

@@ -91,10 +91,10 @@ export class ClientsService {
       throw new UnauthorizedException('Sizda ruxsat yo`q');
     }
 
-    await this.clientModel.findByIdAndUpdate(id, updateClientDto, {
+    const data = await this.clientModel.findByIdAndUpdate(id, updateClientDto, {
       new: true,
     });
-    return client;
+    return data;
   }
 
   async remove(id: string, token: string) {

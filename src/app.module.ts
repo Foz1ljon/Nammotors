@@ -8,8 +8,6 @@ import { ClientsModule } from './clients/clients.module';
 import { CategoryModule } from './category/category.module';
 import { ProductsModule } from './products/products.module';
 import { ContractModule } from './contract/contract.module';
-import { ComponentsModule } from './components/components.module';
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -21,9 +19,7 @@ import { ComponentsModule } from './components/components.module';
     ClientsModule,
     CategoryModule,
     ProductsModule,
-
     ContractModule,
-    ComponentsModule,
   ],
   controllers: [],
   providers: [],

@@ -22,7 +22,7 @@ export class CategoryService {
 
   async findOne(id: string) {
     checkId(id);
-    const find = await this.categoryModel.findById(id);
+    const find = await this.categoryModel.findById(id).populate('products');
     if (!find) throw new NotFoundException('Kateroya topilmadi!');
 
     return find;

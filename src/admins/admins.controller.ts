@@ -9,18 +9,19 @@ import {
   Put,
   HttpCode,
   HttpStatus,
-  // UseGuards,
   UseInterceptors,
   UploadedFile,
+  UseGuards,
+  Headers,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
-  ApiSecurity,
   ApiConsumes,
   ApiBody,
+  ApiSecurity,
 } from '@nestjs/swagger';
 import { AdminsService } from './admins.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
@@ -28,10 +29,10 @@ import { UpdateAdminDto } from './dto/update-admin.dto';
 import { SearchAdminDto } from './dto/search-admin.dto';
 import { Admin } from './schemas/admin.schema';
 import { SignInAdminDto } from './dto/signin-admin.dto';
-// import { AdminGuard } from '../common/guards/AdminGuard';
-// import { SuperAdminGuard } from '../common/guards/SuperAdminGuard';
-// import { SelfGuard } from '../common/guards/SelfGuard';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { AdminGuard } from '../common/guards/AdminGuard';
+import { SelfGuard } from '../common/guards/SelfGuard';
+import { SuperAdminGuard } from '../common/guards/SuperAdminGuard';
 
 @ApiTags('admins')
 @ApiBearerAuth() // Specify that JWT Bearer tokens are used for authentication
@@ -44,7 +45,10 @@ export class AdminsController {
   @UseInterceptors(FileInterceptor('image'))
   @HttpCode(HttpStatus.CREATED)
   @ApiConsumes('multipart/form-data')
-  @ApiBody({ type: CreateAdminDto })
+  @ApiBody({
+    type: CreateAdminDto,
+    description: 'Admin creation data including profile image upload',
+  })
   @ApiOperation({ summary: 'Create a new admin' })
   @ApiResponse({
     status: 201,
@@ -64,13 +68,17 @@ export class AdminsController {
   @ApiOperation({ summary: 'Login an admin' })
   @ApiResponse({
     status: 200,
-    description: 'The admin has ben successfully logged in',
-    type: Admin,
+    description: 'The admin has been successfully logged in',
+    schema: {
+      example: {
+        id: '3904tjgv09cg4g5',
+        token: 'kalvlnlfvsfjvjfvgnjfvbgfk;qaa[[a',
+      },
+    },
   })
   @ApiResponse({
     status: 404,
     description: 'Admin not found',
-    type: Admin,
   })
   @ApiResponse({ status: 400, description: 'Invalid input.' })
   login(@Body() signInAdminDto: SignInAdminDto) {
@@ -78,7 +86,6 @@ export class AdminsController {
   }
 
   @Get('search')
-  // @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Search for admins' })
   @ApiResponse({ status: 200, description: 'Search results', type: [Admin] })
@@ -86,8 +93,18 @@ export class AdminsController {
     return this.adminsService.search(searchAdminDto);
   }
 
+  @Get('auth/getme')
+  @UseGuards(AdminGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get the current admin by token' })
+  @ApiResponse({ status: 200, description: 'Admin found', type: Admin })
+  @ApiResponse({ status: 404, description: 'Admin not found' })
+  getMe(@Headers('Authorization') token: string) {
+    return this.adminsService.getme(token);
+  }
+
   @Get(':id')
-  // @UseGuards(AdminGuard)
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get an admin by ID' })
   @ApiResponse({ status: 200, description: 'Admin found', type: Admin })
@@ -97,8 +114,14 @@ export class AdminsController {
   }
 
   @Put(':id')
-  // @UseGuards(SelfGuard) // Guard to ensure admin can only update their own profile
+  @UseGuards(SelfGuard) // Guard to ensure admin can only update their own profile
   @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    type: UpdateAdminDto,
+    description: 'Admin update data including optional profile image upload',
+  })
   @ApiOperation({ summary: 'Update an admin by ID' })
   @ApiResponse({
     status: 200,
@@ -106,12 +129,16 @@ export class AdminsController {
     type: Admin,
   })
   @ApiResponse({ status: 404, description: 'Admin not found' })
-  update(@Param('id') id: string, @Body() updateAdminDto: UpdateAdminDto) {
-    return this.adminsService.update(id, updateAdminDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateAdminDto: UpdateAdminDto,
+    @UploadedFile() image: Express.Multer.File,
+  ) {
+    return this.adminsService.update(id, updateAdminDto, image);
   }
 
   @Delete(':id')
-  // @UseGuards(SuperAdminGuard)
+  @UseGuards(SuperAdminGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove an admin by ID' })
   @ApiResponse({ status: 204, description: 'Admin successfully removed' })

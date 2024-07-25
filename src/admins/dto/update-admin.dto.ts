@@ -2,6 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional, IsString } from 'class-validator';
 
 export class UpdateAdminDto {
+  @ApiProperty({ type: String, format: 'binary' })
+  image: any;
   @ApiProperty({ type: String, description: 'The image URL' })
   @ApiProperty({
     type: String,
