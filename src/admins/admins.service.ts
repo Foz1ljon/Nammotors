@@ -81,20 +81,67 @@ export class AdminsService {
   }
 
   async search(searchAdminDto: SearchAdminDto): Promise<Admin[]> {
-    const { username, firstName, lastName } = searchAdminDto;
+    const { query } = searchAdminDto;
 
-    const query: any = {};
-    if (username) {
-      query.username = { $regex: username, $options: 'i' };
-    }
-    if (firstName) {
-      query.firstName = { $regex: firstName, $options: 'i' };
-    }
-    if (lastName) {
-      query.lastName = { $regex: lastName, $options: 'i' };
+    // Build the match criteria for the admin
+    const matchAdminCriteria: any = {};
+    if (query) {
+      matchAdminCriteria.$or = [
+        { username: { $regex: query, $options: 'i' } },
+        { fname: { $regex: query, $options: 'i' } },
+        { lname: { $regex: query, $options: 'i' } },
+      ];
     }
 
-    return this.adminModel.find(query).populate('clients');
+    // Aggregation pipeline
+    const pipeline = [
+      {
+        $match: matchAdminCriteria,
+      },
+      {
+        $lookup: {
+          from: 'clients', // Collection name for clients
+          localField: 'clients', // Field in admin collection that references clients
+          foreignField: '_id', // Field in clients collection
+          as: 'clientsInfo', // Alias for the joined data
+        },
+      },
+      {
+        $unwind: {
+          path: '$clientsInfo', // Flatten the clientsInfo array
+          preserveNullAndEmptyArrays: true, // Keep admins without clients
+        },
+      },
+      {
+        $project: {
+          image: 1,
+          username: 1,
+          fname: 1,
+          lname: 1,
+
+          'clientsInfo.fname': 1,
+          'clientsInfo.phone_number': 1,
+          'clientsInfo.firma': 1,
+          'clientsInfo.type': 1,
+          'clientsInfo.location': 1,
+        },
+      },
+      {
+        $group: {
+          _id: '$_id', // Group by admin _id to reconstruct the admin document
+          image: { $first: '$image' },
+          username: { $first: '$username' },
+          fname: { $first: '$fname' },
+          lname: { $first: '$lname' },
+          clientsInfo: { $push: '$clientsInfo' }, // Reconstruct the clientsInfo array
+        },
+      },
+    ];
+
+    // Execute the aggregation pipeline
+    const admins = await this.adminModel.aggregate(pipeline).exec();
+
+    return admins;
   }
 
   async findById(id: string) {

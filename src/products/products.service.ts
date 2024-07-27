@@ -50,19 +50,53 @@ export class ProductsService {
 
   // qidiruv
   async search(searchProductDto: SearchProductDto): Promise<Product[]> {
-    const { query } = searchProductDto;
-    const queries: any = {};
+    let { query } = searchProductDto;
 
-    if (query) {
-      queries.$or = [
-        { marka: { $regex: query, $options: 'i' } },
-        { kwt: { $regex: query, $options: 'i' } },
-        { turnover: { $regex: query, $options: 'i' } },
-        { location: { $regex: query, $options: 'i' } },
-      ];
-    }
+    // Ensure query is a string
+    query = typeof query === 'string' ? query : '';
 
-    return this.productModel.find(queries).exec();
+    // Aggregation pipeline for searching by category.name
+    const pipeline = [
+      {
+        $lookup: {
+          from: 'categories', // The collection name for categories
+          localField: 'category', // Field in products collection
+          foreignField: '_id', // Field in categories collection
+          as: 'categoryInfo', // Alias for the joined data
+        },
+      },
+      {
+        $unwind: '$categoryInfo', // Flatten the categoryInfo array
+      },
+      {
+        $match: {
+          $or: [
+            { marka: { $regex: query, $options: 'i' } },
+            { kwt: { $regex: query, $options: 'i' } },
+            { turnover: { $regex: query, $options: 'i' } },
+            { location: { $regex: query, $options: 'i' } },
+            { 'categoryInfo.name': { $regex: query, $options: 'i' } }, // Search by category name
+          ],
+        },
+      },
+      {
+        $project: {
+          // Optional: Define the fields to include in the output
+          _id: 1,
+          img: 1,
+          kwt: 1,
+          turnover: 1,
+          location: 1,
+          count: 1,
+          price: 1,
+          category: '$categoryInfo.name',
+        },
+      },
+    ];
+
+    const products = await this.productModel.aggregate(pipeline).exec();
+
+    return products;
   }
 
   async findOne(id: string) {
