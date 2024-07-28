@@ -84,6 +84,7 @@ export class ProductsService {
           // Optional: Define the fields to include in the output
           _id: 1,
           img: 1,
+          marka: 1,
           kwt: 1,
           turnover: 1,
           location: 1,

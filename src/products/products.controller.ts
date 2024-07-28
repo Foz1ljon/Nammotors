@@ -12,6 +12,7 @@ import {
   UseInterceptors,
   UploadedFile,
   UseGuards,
+  Put,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -114,9 +115,9 @@ export class ProductsController {
     return this.productsService.findOne(id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   @UseGuards(AdminGuard)
-  @UseInterceptors(FileInterceptor('photo'))
+  @UseInterceptors(FileInterceptor('img'))
   @ApiOperation({ summary: 'Update a product' })
   @ApiParam({ name: 'id', description: 'Product ID' })
   @ApiResponse({
@@ -134,9 +135,9 @@ export class ProductsController {
   update(
     @Param('id') id: string,
     @Body() updateProductDto: UpdateProductDto,
-    @UploadedFile() photo: Express.Multer.File,
+    @UploadedFile() img: Express.Multer.File,
   ) {
-    return this.productsService.update(id, updateProductDto, photo);
+    return this.productsService.update(id, updateProductDto, img);
   }
 
   @Patch('component/:id')

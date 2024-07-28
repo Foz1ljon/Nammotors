@@ -41,6 +41,7 @@ export class CategoryService {
     checkId(id);
     const find = await this.categoryModel.findById(id);
     if (!find) throw new NotFoundException('Kateroya topilmadi!');
-    return 'Muvoffaqiyatli o`chirildi';
+    await this.categoryModel.findByIdAndDelete(id);
+    return { message: 'Muvoffaqiyatli o`chirildi' };
   }
 }
