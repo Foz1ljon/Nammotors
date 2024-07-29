@@ -46,12 +46,18 @@ export class ClientsService {
     const findAdmin = await this.adminModel.findById(id).exec();
     if (!findAdmin) throw new NotFoundException('Admin not found');
 
-    const data = await this.clientModel.create(createClientDto);
+    const data = await this.clientModel.create({
+      admin: findAdmin._id,
+      ...createClientDto,
+    });
 
     findAdmin.clients.push(data);
     await findAdmin.save();
 
-    return { message: 'Client created successfully!', data };
+    return {
+      message: 'Client created successfully!',
+      data: data.populate('admin'),
+    };
   }
   async search(searchClientDto: SearchClientDto): Promise<Client[]> {
     const { query } = searchClientDto;
@@ -62,17 +68,16 @@ export class ClientsService {
         { fname: { $regex: query, $options: 'i' } },
         { phone_number: { $regex: query, $options: 'i' } },
         { firma: { $regex: query, $options: 'i' } },
-        // Add more fields if needed
       ];
     }
 
-    return this.clientModel.find(queries).exec();
+    return this.clientModel.find(queries).populate('admin').exec();
   }
 
   async findById(id: string) {
     checkId(id);
-    const client = await this.clientModel.findById(id).exec();
-    if (!client) throw new NotFoundException('Client not found');
+    const client = await this.clientModel.findById(id).populate('admin');
+    if (!client) throw new NotFoundException('Mijoz topilmadi');
     return client;
   }
 
@@ -87,9 +92,9 @@ export class ClientsService {
     const client = await this.clientModel.findById(id);
     if (!client) throw new NotFoundException('Client not found');
 
-    if (!admin.clients.includes(client.id)) {
-      throw new UnauthorizedException('Sizda ruxsat yo`q');
-    }
+    // if (!admin.clients.includes(client.id)) {
+    //   throw new UnauthorizedException('Sizda ruxsat yo`q');
+    // } admin function
 
     const data = await this.clientModel.findByIdAndUpdate(id, updateClientDto, {
       new: true,
@@ -115,7 +120,6 @@ export class ClientsService {
     const clients = admin.clients.filter(
       (clientId) => clientId.toString() !== client.id.toString(),
     );
-    console.log(clients);
 
     admin.clients = clients;
     await admin.save();

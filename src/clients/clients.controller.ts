@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   Query,
@@ -11,6 +10,7 @@ import {
   HttpStatus,
   UseGuards,
   Headers,
+  Put,
 } from '@nestjs/common';
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/create-client.dto';
@@ -69,7 +69,7 @@ export class ClientsController {
     return this.clientsService.findById(id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update a client' })

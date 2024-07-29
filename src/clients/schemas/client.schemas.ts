@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import mongoose, { HydratedDocument } from 'mongoose';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsString,
@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   IsPhoneNumber,
 } from 'class-validator';
+import { Admin } from '../../admins/schemas/admin.schema';
 
 export type ClientDocument = HydratedDocument<Client>;
 
@@ -51,6 +52,17 @@ export class Client {
   @IsNotEmpty()
   @Prop({ type: String, required: true })
   location: string;
+
+  @ApiProperty({
+    description: 'The admin of the client',
+    example: '9004gsdsdmsd',
+  })
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin',
+    required: true,
+  })
+  admin: Admin;
 }
 
 export const ClientSchema = SchemaFactory.createForClass(Client);
