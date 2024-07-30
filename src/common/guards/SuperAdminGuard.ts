@@ -15,12 +15,13 @@ export class SuperAdminGuard implements CanActivate {
     const req = context.switchToHttp().getRequest();
     const authHeader = req.headers.authorization;
 
-    if (!authHeader) throw new UnauthorizedException('User unauthorized');
+    if (!authHeader)
+      throw new UnauthorizedException('Foydalanuvchi avtorizatsiya qilinmagan');
 
     const [bearer, token] = authHeader.split(' ');
 
     if (bearer !== 'Bearer' || !token)
-      throw new UnauthorizedException('User unauthorized');
+      throw new UnauthorizedException('Ruxsatsiz foydalanuvchi');
 
     try {
       const user: Partial<Admin> = await this.jwtService.verify(token, {
@@ -28,11 +29,11 @@ export class SuperAdminGuard implements CanActivate {
       });
 
       if (!user || !user.super)
-        throw new UnauthorizedException('Access denied');
+        throw new UnauthorizedException("Bunday huquqingiz yo'q");
 
       return true;
     } catch {
-      throw new UnauthorizedException('User unauthorized');
+      throw new UnauthorizedException('Foydalanuvchi avtorizatsiya qilinmagan');
     }
   }
 }

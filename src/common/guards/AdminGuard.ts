@@ -17,23 +17,32 @@ export class AdminGuard implements CanActivate {
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
-      throw new UnauthorizedException('Unauthorized access token1');
+      throw new UnauthorizedException(
+        "Ruxsatsiz kirish: token mavjud emas yoki noto'ri",
+      );
     }
 
     const [bearer, token] = authHeader.split(' ');
 
     if (bearer !== 'Bearer' || !token) {
-      throw new UnauthorizedException('Unauthorized access token2');
+      throw new UnauthorizedException(
+        "Ruxsatsiz kirish: token mavjud emas yoki noto'ri",
+      );
     }
 
     try {
       const user: Partial<Admin> = await this.jwtService.verify(token, {
         secret: env.JWT_ACCESS_TOKEN,
       });
-      if (!user) throw new UnauthorizedException('Unauthorized access token3');
+      if (!user)
+        throw new UnauthorizedException(
+          "Ruxsatsiz kirish: token mavjud emas yoki noto'ri",
+        );
       return true;
     } catch (error) {
-      throw new UnauthorizedException('Unauthorized access token4');
+      throw new UnauthorizedException(
+        "Ruxsatsiz kirish: token mavjud emas yoki noto'ri",
+      );
     }
   }
 }

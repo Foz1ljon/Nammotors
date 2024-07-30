@@ -25,65 +25,75 @@ export class AdminsService {
     private clientService: ClientsService,
   ) {}
 
+  // Token yaratish
   getToken(data: any) {
-    const payload = {
-      id: data._id,
-    };
+    const payload = { id: data._id };
     const token = this.jwtService.sign(payload);
     return { token };
   }
 
+  // Admin yaratish
   async create(createAdminDto: CreateAdminDto, photo: Express.Multer.File) {
-    const admin = await this.adminModel.findOne({
+    const existingAdmin = await this.adminModel.findOne({
       username: createAdminDto.username,
     });
-    if (admin)
+
+    if (existingAdmin) {
       throw new BadRequestException("Bu username allaqachon ro'yxatdan o'tgan");
+    }
 
     createAdminDto.password = await bcrypt.hash(createAdminDto.password, 7);
 
-    if (!photo) throw new BadRequestException('Image is requirred!');
+    if (!photo) {
+      throw new BadRequestException('Rasm kiritilishi shart!');
+    }
+
     const img = (await this.cloudinaryService.uploadImage(photo)).url;
 
-    const data = await this.adminModel.create({
+    const newAdmin = await this.adminModel.create({
       image: img,
       ...createAdminDto,
     });
 
-    const token = this.getToken(data);
+    const token = this.getToken(newAdmin);
 
     return {
-      data,
+      data: newAdmin,
       ...token,
     };
   }
 
+  // Adminni tizimga kirishi
   async login(loginAdminDto: SignInAdminDto) {
     const admin = await this.adminModel.findOne({
       username: loginAdminDto.username,
     });
 
-    if (!admin)
-      throw new NotFoundException('Admin topilmadi! yoki Parol no`tog`ri');
+    if (!admin) {
+      throw new NotFoundException("Admin topilmadi yoki parol noto'g'ri");
+    }
 
     const isMatch = await bcrypt.compare(
       loginAdminDto.password,
       admin.password,
     );
 
-    if (!isMatch)
-      throw new NotFoundException('Admin topilmadi! yoki Parol no`tog`ri');
+    if (!isMatch) {
+      throw new NotFoundException("Admin topilmadi yoki parol noto'g'ri");
+    }
+
     const token = this.getToken(admin);
+
     return {
       id: admin._id,
       ...token,
     };
   }
 
+  // Adminlarni qidirish
   async search(searchAdminDto: SearchAdminDto): Promise<Admin[]> {
     const { query } = searchAdminDto;
 
-    // Build the match criteria for the admin
     const matchAdminCriteria: any = {};
     if (query) {
       matchAdminCriteria.$or = [
@@ -93,23 +103,20 @@ export class AdminsService {
       ];
     }
 
-    // Aggregation pipeline
     const pipeline = [
-      {
-        $match: matchAdminCriteria,
-      },
+      { $match: matchAdminCriteria },
       {
         $lookup: {
-          from: 'clients', // Collection name for clients
-          localField: 'clients', // Field in admin collection that references clients
-          foreignField: '_id', // Field in clients collection
-          as: 'clientsInfo', // Alias for the joined data
+          from: 'clients',
+          localField: 'clients',
+          foreignField: '_id',
+          as: 'clientsInfo',
         },
       },
       {
         $unwind: {
-          path: '$clientsInfo', // Flatten the clientsInfo array
-          preserveNullAndEmptyArrays: true, // Keep admins without clients
+          path: '$clientsInfo',
+          preserveNullAndEmptyArrays: true,
         },
       },
       {
@@ -118,7 +125,6 @@ export class AdminsService {
           username: 1,
           fname: 1,
           lname: 1,
-
           'clientsInfo.fname': 1,
           'clientsInfo.phone_number': 1,
           'clientsInfo.firma': 1,
@@ -128,54 +134,71 @@ export class AdminsService {
       },
       {
         $group: {
-          _id: '$_id', // Group by admin _id to reconstruct the admin document
+          _id: '$_id',
           image: { $first: '$image' },
           username: { $first: '$username' },
           fname: { $first: '$fname' },
           lname: { $first: '$lname' },
-          clientsInfo: { $push: '$clientsInfo' }, // Reconstruct the clientsInfo array
+          clientsInfo: { $push: '$clientsInfo' },
         },
       },
     ];
 
-    // Execute the aggregation pipeline
     const admins = await this.adminModel.aggregate(pipeline).exec();
 
     return admins;
   }
 
+  // Adminni ID bo'yicha topish
   async findById(id: string) {
     checkId(id);
     const admin = await this.adminModel
       .findById(id)
       ?.select('-password')
       ?.populate('clients');
-    if (!admin) throw new NotFoundException('Admin topilmadi!');
+
+    if (!admin) {
+      throw new NotFoundException('Admin topilmadi!');
+    }
 
     return admin;
   }
+
+  // Token orqali adminni olish
   async getme(token: string) {
     const id = await this.clientService.decodeToken(token);
     checkId(id);
     const admin = await this.adminModel.findById(id).populate('clients');
-    if (!admin) throw new NotFoundException('Admin Topilmadi!');
+
+    if (!admin) {
+      throw new NotFoundException('Admin topilmadi!');
+    }
+
     return admin;
   }
 
+  // Adminni yangilash
   async update(
     id: string,
     updateAdminDto: UpdateAdminDto,
     photo: Express.Multer.File,
   ) {
     checkId(id);
+
     const admin = await this.adminModel.findById(id)?.select('-password');
-    if (!admin) throw new NotFoundException('Admin topilmadi!');
+
+    if (!admin) {
+      throw new NotFoundException('Admin topilmadi!');
+    }
+
     if (photo) {
       await this.cloudinaryService.removeImageByUrl(admin.image);
       updateAdminDto.image = (
         await this.cloudinaryService.uploadImage(photo)
       ).url;
+      admin.image = updateAdminDto.image;
     }
+
     if (updateAdminDto.fname) {
       admin.fname = updateAdminDto.fname;
     }
@@ -186,13 +209,15 @@ export class AdminsService {
       const findUsername = await this.adminModel.findOne({
         username: updateAdminDto.username,
       });
-      if (findUsername && findUsername.id !== id)
+      if (findUsername && findUsername.id !== id) {
         throw new BadRequestException('Bu username allaqachon mavjud!');
+      }
       admin.username = updateAdminDto.username;
     }
     if (updateAdminDto.password) {
       admin.password = await bcrypt.hash(updateAdminDto.password, 7);
     }
+
     await admin.save();
 
     return this.adminModel
@@ -201,14 +226,17 @@ export class AdminsService {
       .select('-super');
   }
 
+  // Adminni o'chirish
   async remove(id: string) {
     checkId(id);
     const admin = await this.adminModel.findById(id)?.select('-password');
-    if (!admin) throw new NotFoundException('Admin topilmadi!');
-    console.log('hello');
+
+    if (!admin) {
+      throw new NotFoundException('Admin topilmadi!');
+    }
 
     const data = await this.adminModel.findByIdAndDelete(id);
 
-    return { message: 'Muvoffaqiyatli o`chirildi!', ...data };
+    return { message: "Muvoffaqiyatli o'chirildi!", ...data };
   }
 }

@@ -31,12 +31,11 @@ import { Admin } from './schemas/admin.schema';
 import { SignInAdminDto } from './dto/signin-admin.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AdminGuard } from '../common/guards/AdminGuard';
-import { SelfGuard } from '../common/guards/SelfGuard';
 import { SuperAdminGuard } from '../common/guards/SuperAdminGuard';
 
 @ApiTags('admins')
-@ApiBearerAuth() // Specify that JWT Bearer tokens are used for authentication
-@ApiSecurity('bearerAuth') // Reference the security scheme defined above
+@ApiBearerAuth() // JWT Bearer tokens are used for authentication
+@ApiSecurity('bearerAuth') // Security scheme for JWT
 @Controller('admins')
 export class AdminsController {
   constructor(private readonly adminsService: AdminsService) {}
@@ -114,7 +113,7 @@ export class AdminsController {
   }
 
   @Put(':id')
-  @UseGuards(SelfGuard) // Guard to ensure admin can only update their own profile
+  @UseGuards(SuperAdminGuard) // Guard to ensure admin can only update their own profile
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('image'))
   @ApiConsumes('multipart/form-data')

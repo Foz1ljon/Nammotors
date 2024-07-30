@@ -34,7 +34,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
 
   // Setup Swagger module
-  SwaggerModule.setup('docs', app, document, {
+  SwaggerModule.setup('v1/docs', app, document, {
     swaggerOptions: {
       authAction: {
         token: {
