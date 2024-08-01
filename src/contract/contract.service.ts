@@ -108,7 +108,7 @@ export class ContractService {
   }
 
   async findAll() {
-    return this.contModel.find().exec();
+    return this.contModel.find().populate(['client', 'vendor', 'product']);
   }
 
   async findOne(id: string) {

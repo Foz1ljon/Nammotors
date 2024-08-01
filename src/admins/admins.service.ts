@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  NotAcceptableException,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateAdminDto } from './dto/create-admin.dto';
@@ -27,7 +28,7 @@ export class AdminsService {
 
   // Token yaratish
   getToken(data: any) {
-    const payload = { id: data._id };
+    const payload = { id: data._id, super: data.super };
     const token = this.jwtService.sign(payload);
     return { token };
   }
@@ -234,9 +235,10 @@ export class AdminsService {
     if (!admin) {
       throw new NotFoundException('Admin topilmadi!');
     }
+    if (admin.super) throw new NotAcceptableException("Ruxsatingiz yo'q");
 
     const data = await this.adminModel.findByIdAndDelete(id);
 
-    return { message: "Muvoffaqiyatli o'chirildi!", ...data };
+    return { message: "Muvoffaqiyatli o'chirildi!", data };
   }
 }
