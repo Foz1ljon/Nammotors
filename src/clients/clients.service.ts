@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -40,25 +41,40 @@ export class ClientsService {
   }
 
   async create(createClientDto: CreateClientDto, token: string) {
+    // Decode the token to get the admin ID
     const id = await this.decodeToken(token);
     checkId(id);
 
+    // Find the admin by ID
     const findAdmin = await this.adminModel.findById(id).exec();
     if (!findAdmin) throw new NotFoundException('Admin not found');
 
+    // Check if a client with the same phone number already exists
+    const existingClient = await this.clientModel
+      .findOne({ phone_number: createClientDto.phone_number })
+      .exec();
+    if (existingClient) {
+      throw new ConflictException(
+        'Client with this phone number already exists',
+      );
+    }
+
+    // Create a new client
     const data = await this.clientModel.create({
       admin: findAdmin._id,
       ...createClientDto,
     });
 
+    // Add the new client to the admin's list of clients
     findAdmin.clients.push(data);
     await findAdmin.save();
 
     return {
       message: 'Client created successfully!',
-      data: data.populate('admin'),
+      data: await data.populate('admin'),
     };
   }
+
   async search(searchClientDto: SearchClientDto): Promise<Client[]> {
     const { query } = searchClientDto;
     const queries: any = {};

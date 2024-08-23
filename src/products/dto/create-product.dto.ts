@@ -42,6 +42,22 @@ export class CreateProductDto {
   turnover: string;
 
   @ApiProperty({
+    description: 'The volume of the product',
+    example: '200',
+  })
+  @IsNotEmpty()
+  @IsString()
+  m3: string;
+
+  @ApiProperty({
+    description: 'The metr/height of the product',
+    example: '500',
+  })
+  @IsNotEmpty()
+  @IsString()
+  mh: string;
+
+  @ApiProperty({
     description: 'The category of the product',
     example: 'Electronics',
   })

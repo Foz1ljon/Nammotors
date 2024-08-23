@@ -4,7 +4,7 @@ import {
   IsNotEmpty,
   IsNumber,
   IsOptional,
-  IsArray,
+  IsPhoneNumber,
 } from 'class-validator';
 
 export class CreateContractDto {
@@ -12,7 +12,6 @@ export class CreateContractDto {
     description: 'The ID of the product associated with the contract',
     example: '60d0fe4f5311236168a109ca',
   })
-  @IsArray()
   @IsNotEmpty()
   product: string[];
 
@@ -20,8 +19,8 @@ export class CreateContractDto {
     description: 'The ID of the client associated with the contract',
     example: '60d0fe4f5311236168a109cc',
   })
-  @IsString()
   @IsNotEmpty()
+  @IsPhoneNumber('UZ')
   client: string;
 
   @ApiProperty({

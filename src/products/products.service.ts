@@ -75,6 +75,9 @@ export class ProductsService {
             { kwt: { $regex: query, $options: 'i' } },
             { turnover: { $regex: query, $options: 'i' } },
             { location: { $regex: query, $options: 'i' } },
+            { m3: { $regex: query, $options: 'i' } },
+            { mh: { $regex: query, $options: 'i' } },
+
             { 'categoryInfo.name': { $regex: query, $options: 'i' } }, // Search by category name
           ],
         },
@@ -90,6 +93,8 @@ export class ProductsService {
           location: 1,
           count: 1,
           price: 1,
+          m3: 1,
+          mh: 1,
           category: '$categoryInfo.name',
         },
       },

@@ -49,7 +49,7 @@ export class ContractService {
 
   async create(createContractDto: CreateContractDto, token: string) {
     const type = ['cash', 'card', 'credit'];
-    const { product, client, discount, paytype } = createContractDto;
+    const { product, discount, paytype } = createContractDto;
 
     // Mahsulot IDlarini tekshirish va jamlash
     let summa = 0;
@@ -69,9 +69,9 @@ export class ContractService {
       await findProd.save();
     }
 
-    // Mijoz IDsi tekshirish
-    checkId(client);
-    const findClient = await this.clientModel.findById(client);
+    const findClient = await this.clientModel.findOne({
+      phone_number: createContractDto.client,
+    });
     if (!findClient) throw new NotFoundException('Mijoz topilmadi');
 
     // Admin tokenini dekodlash

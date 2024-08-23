@@ -52,6 +52,22 @@ export class UpdateProductDto {
   readonly turnover?: string;
 
   @ApiProperty({
+    description: 'The volume of the product',
+    example: '200',
+  })
+  @IsOptional()
+  @IsString()
+  m3?: string;
+
+  @ApiProperty({
+    description: 'The metr/height of the product',
+    example: '500',
+  })
+  @IsOptional()
+  @IsString()
+  mh?: string;
+
+  @ApiProperty({
     description: 'The category of the product',
     example: 'Electronics',
     required: false,

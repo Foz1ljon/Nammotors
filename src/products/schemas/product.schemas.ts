@@ -50,6 +50,20 @@ export class Product extends Document {
   turnover: string;
 
   @ApiProperty({
+    description: 'The volume of the product',
+    example: '200',
+  })
+  @Prop()
+  m3: string;
+
+  @ApiProperty({
+    description: 'The metr/height of the product',
+    example: '500',
+  })
+  @Prop()
+  mh: string;
+
+  @ApiProperty({
     description: 'The category of the product',
     example: 'Electronics',
   })
