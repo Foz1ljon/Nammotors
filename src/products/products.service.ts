@@ -25,7 +25,7 @@ export class ProductsService {
   ) {}
   async create(createProductDto: CreateProductDto, img: Express.Multer.File) {
     if (!img) throw new BadRequestException('Image is requirred!');
-    const photo = (await this.cloudinaryService.uploadImage(img)).url;
+    const photo = (await this.cloudinaryService.uploadImage(img)).secure_url;
 
     checkId(createProductDto.category);
     const findCategory = await this.categoryModel.findById(
@@ -44,7 +44,7 @@ export class ProductsService {
     img: Express.Multer.File,
   ) {
     if (!img) throw new BadRequestException('Image is requirred!');
-    const photo = (await this.cloudinaryService.uploadImage(img)).url;
+    const photo = (await this.cloudinaryService.uploadImage(img)).secure_url;
     return this.productModel.create({ img: photo, ...createComponentDto });
   }
 
@@ -130,7 +130,7 @@ export class ProductsService {
     const data = await this.productModel.findByIdAndUpdate(
       id,
       {
-        img: photo.url,
+        img: photo.secure_url,
         ...updateComponentDto,
       },
       { new: true },
@@ -160,7 +160,7 @@ export class ProductsService {
     const data = await this.productModel.findByIdAndUpdate(
       id,
       {
-        img: photo.url,
+        img: photo.secure_url,
         ...updateProductDto,
       },
       { new: true },

@@ -49,7 +49,7 @@ export class AdminsService {
       throw new BadRequestException('Rasm kiritilishi shart!');
     }
 
-    const img = (await this.cloudinaryService.uploadImage(photo)).url;
+    const img = (await this.cloudinaryService.uploadImage(photo)).secure_url;
 
     const newAdmin = await this.adminModel.create({
       image: img,
@@ -196,7 +196,7 @@ export class AdminsService {
       await this.cloudinaryService.removeImageByUrl(admin.image);
       updateAdminDto.image = (
         await this.cloudinaryService.uploadImage(photo)
-      ).url;
+      ).secure_url;
       admin.image = updateAdminDto.image;
     }
 
