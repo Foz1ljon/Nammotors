@@ -235,7 +235,6 @@ export class AdminsService {
     if (!admin) {
       throw new NotFoundException('Admin topilmadi!');
     }
-    if (admin.super) throw new NotAcceptableException("Ruxsatingiz yo'q");
 
     const data = await this.adminModel.findByIdAndDelete(id);
 
