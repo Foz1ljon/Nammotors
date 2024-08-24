@@ -54,12 +54,9 @@ export class ProductsService {
     // Ensure query is a string and not empty
     const searchQuery = typeof query === 'string' ? query : '';
 
-    // Log the search query for debugging
-    console.log('Search Query:', searchQuery);
-
     // If the search query is empty, return an empty array
     if (!searchQuery) {
-      return []; // Return empty array if no query is provided
+      return this.productModel.find().populate('category');
     }
 
     // Aggregation pipeline for filtering products based on category name only
