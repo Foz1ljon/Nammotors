@@ -48,6 +48,68 @@ export class ProductsService {
     return this.productModel.create({ img: photo, ...createComponentDto });
   }
 
+  async filterProduct(searchProductDto: SearchProductDto): Promise<Product[]> {
+    const { query } = searchProductDto;
+
+    // Ensure query is a string and not empty
+    const searchQuery = typeof query === 'string' ? query : '';
+
+    // Log the search query for debugging
+    console.log('Search Query:', searchQuery);
+
+    // If the search query is empty, return an empty array
+    if (!searchQuery) {
+      return []; // Return empty array if no query is provided
+    }
+
+    // Aggregation pipeline for filtering products based on category name only
+    const pipeline = [
+      {
+        $lookup: {
+          from: 'categories', // The collection name for categories
+          localField: 'category', // Field in products collection
+          foreignField: '_id', // Field in categories collection
+          as: 'categoryInfo', // Alias for the joined data
+        },
+      },
+      {
+        $unwind: {
+          path: '$categoryInfo', // Flatten the categoryInfo array
+          preserveNullAndEmptyArrays: true, // Keep products without category
+        },
+      },
+      {
+        $match: {
+          'categoryInfo.name': { $regex: searchQuery, $options: 'i' }, // Match by category name (case insensitive)
+        },
+      },
+      {
+        $project: {
+          // Define the fields to include in the output
+          _id: 1,
+          img: 1,
+          marka: 1,
+          kwt: 1,
+          turnover: 1,
+          location: 1,
+          count: 1,
+          price: 1,
+          m3: 1,
+          mh: 1,
+          category: '$categoryInfo.name',
+        },
+      },
+    ];
+
+    // Execute the aggregation pipeline
+    const products = await this.productModel.aggregate(pipeline).exec();
+
+    // Log the found products for debugging
+    console.log('Products Found:', products);
+
+    return products; // Returns [] if no matches
+  }
+
   // qidiruv
   async search(searchProductDto: SearchProductDto): Promise<Product[]> {
     let { query } = searchProductDto;

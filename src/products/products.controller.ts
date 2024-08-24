@@ -40,7 +40,7 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
-  @UseGuards(AdminGuard)
+  // @UseGuards(AdminGuard)
   @UseInterceptors(FileInterceptor('photo'))
   @ApiOperation({ summary: 'Create a new product' })
   @ApiResponse({
@@ -85,7 +85,7 @@ export class ProductsController {
   }
 
   @Get('search')
-  @UseGuards(AdminGuard)
+  // @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Search for products' })
   @ApiResponse({
@@ -98,6 +98,22 @@ export class ProductsController {
     @Query() searchProductDto: SearchProductDto,
   ): Promise<Product[]> {
     return this.productsService.search(searchProductDto);
+  }
+
+  @Get('filter')
+  // @UseGuards(AdminGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'filter for products' })
+  @ApiResponse({
+    status: 200,
+    description: 'filter results',
+    type: [Product],
+  })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  async filter(
+    @Query() searchProductDto: SearchProductDto,
+  ): Promise<Product[]> {
+    return this.productsService.filterProduct(searchProductDto);
   }
 
   @Get(':id')

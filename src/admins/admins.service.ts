@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   Injectable,
-  NotAcceptableException,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateAdminDto } from './dto/create-admin.dto';
@@ -235,7 +234,6 @@ export class AdminsService {
     if (!admin) {
       throw new NotFoundException('Admin topilmadi!');
     }
-
     const data = await this.adminModel.findByIdAndDelete(id);
 
     return { message: "Muvoffaqiyatli o'chirildi!", data };
