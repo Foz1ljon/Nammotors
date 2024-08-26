@@ -154,6 +154,7 @@ export class ContractService {
   }
 
   // Shartnomani yangilash funksiyasi
+  // Shartnomani yangilash funksiyasi
   async update(
     id: string,
     updateContractDto: UpdateContractDto,
@@ -166,22 +167,51 @@ export class ContractService {
     const adminId = await this.decodeToken(token);
     await this.findAdminById(adminId);
 
-    // Agar yangi mahsulotlar qo‘shilsa, summani qayta hisoblash
-    if (updateContractDto.product) {
-      const totalSum = await this.findAndValidateProduct(
-        updateContractDto.product,
+    // Initialize variables to hold values for calculations
+    let totalSum = 0;
+    let clientId;
+
+    // If a client phone number is provided, validate and get the client
+    if (updateContractDto.client) {
+      const client = await this.findClientByPhoneNumber(
+        updateContractDto.client,
       );
-      const price = this.applyDiscount(
-        totalSum,
-        updateContractDto.discount || 0,
-      );
-      updateContractDto.price = price.toString();
+      clientId = client; // Use the ObjectId of the client
+    } else {
+      clientId = contract.client; // Keep existing client if no new client is provided
     }
 
-    Object.assign(contract, updateContractDto);
-    await contract.save();
+    // If new products are provided, recalculate the total sum
+    if (updateContractDto.product) {
+      totalSum = await this.findAndValidateProduct(updateContractDto.product);
+    } else {
+      // If no new products, maintain the existing totalSum or calculate based on current products
+      totalSum = contract.price; // Consider current contract price if no new products are added
+    }
 
-    return contract.populate(['client', 'vendor', 'product']);
+    // Validate the payment type
+    if (updateContractDto.paytype) {
+      this.validatePaymentType(updateContractDto.paytype);
+    } else {
+      updateContractDto.paytype = contract.paytype; // Keep existing payment type if not updated
+    }
+
+    // Calculate the final price considering discounts
+    const finalSum = this.applyDiscount(
+      totalSum,
+      updateContractDto.discount || 0,
+    );
+    updateContractDto.price = finalSum.toString(); // Update price with the final calculated sum
+
+    // Create the updated contract object
+    const updatedContract = Object.assign(contract, {
+      ...updateContractDto,
+      client: clientId, // Ensure client ID is set properly
+    });
+
+    await updatedContract.save();
+
+    return updatedContract.populate(['client', 'vendor', 'product']);
   }
 
   // Shartnomani o‘chirish funksiyasi
