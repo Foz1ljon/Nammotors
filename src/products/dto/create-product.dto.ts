@@ -11,25 +11,25 @@ export class CreateProductDto {
   img?: any;
 
   @ApiProperty({ description: 'The brand of the product', example: 'Toyota' })
-  @IsString({ message: '1' })
-  @IsNotEmpty({ message: '1' })
+  @IsString()
+  @IsNotEmpty()
   marka: string;
 
   @ApiProperty({ description: 'Product count', example: '234' })
   @IsNumberString()
-  @IsNotEmpty({ message: '2' })
+  @IsNotEmpty()
   count: string;
 
   @ApiProperty({ description: 'Product price', example: '12000' })
   @IsNumberString()
-  @IsNotEmpty({ message: '3' })
+  @IsNotEmpty()
   price: string;
 
   @ApiProperty({
     description: 'The power rating of the product in kilowatts',
     example: '200kW',
   })
-  @IsNotEmpty({ message: '4' })
+  @IsNotEmpty()
   @IsNumberString()
   kwt: string;
 
@@ -37,24 +37,24 @@ export class CreateProductDto {
     description: 'The turnover of the product',
     example: '5000 units',
   })
-  @IsString({ message: '5' })
-  @IsNotEmpty({ message: '5' })
+  @IsString()
+  @IsNotEmpty()
   turnover: string;
 
   @ApiProperty({
     description: 'The volume of the product',
     example: '200',
   })
-  @IsNotEmpty({ message: '6' })
-  @IsString({ message: '6' })
+  @IsNotEmpty()
+  @IsString()
   m3: string;
 
   @ApiProperty({
     description: 'The metr/height of the product',
     example: '500',
   })
-  @IsNotEmpty({ message: '7' })
-  @IsString({ message: '7' })
+  @IsNotEmpty()
+  @IsString()
   mh: string;
 
   @ApiProperty({
@@ -62,14 +62,14 @@ export class CreateProductDto {
     example: 'Electronics',
   })
   @IsMongoId()
-  @IsNotEmpty({ message: '8' })
+  @IsNotEmpty()
   category: string;
 
   @ApiProperty({
     description: 'The location of the product',
     example: 'Warehouse A',
   })
-  @IsString({ message: '9' })
-  @IsNotEmpty({ message: '9' })
+  @IsString()
+  @IsNotEmpty()
   location: string;
 }
