@@ -27,97 +27,133 @@ export class ContractService {
     private jwtService: JwtService,
   ) {}
 
-  async decodeToken(token: string) {
-    console.log(token);
-
+  // Tokenni dekodlash funksiyasi
+  private async decodeToken(token: string): Promise<string> {
     const [bearer, tkn] = token.split(' ');
 
+    // Token formati to'g'ri ekanligini tekshirish
     if (bearer !== 'Bearer' || !tkn) {
       throw new UnauthorizedException('Noto‘g‘ri token formati');
     }
 
     try {
+      // Tokenni dekodlash
       const decoded = await this.jwtService.verify(tkn, {
         secret: this.configService.get<string>('JWT_ACCESS_TOKEN'),
       });
       return decoded.id;
     } catch (error) {
-      console.error('Noto‘g‘ri token', error.stack);
       throw new UnauthorizedException('Noto‘g‘ri token');
     }
   }
 
+  // Adminni ID bo‘yicha topish funksiyasi
+  private async findAdminById(adminId: string): Promise<Admin> {
+    checkId(adminId);
+    const admin = await this.adminModel.findById(adminId);
+    if (!admin) {
+      throw new NotFoundException('Admin topilmadi');
+    }
+    return admin;
+  }
+
+  // Telefon raqam bo‘yicha mijozni topish funksiyasi
+  private async findClientByPhoneNumber(phoneNumber: string): Promise<Client> {
+    const client = await this.clientModel.findOne({
+      phone_number: phoneNumber,
+    });
+    if (!client) {
+      throw new NotFoundException('Mijoz topilmadi');
+    }
+    return client;
+  }
+
+  // Mahsulot IDlarini tekshirish va summani hisoblash funksiyasi
+  private async findAndValidateProduct(productIds: string[]): Promise<number> {
+    let totalSum = 0;
+
+    for (const itemId of productIds) {
+      checkId(itemId);
+      const product = await this.productModel.findById(itemId);
+      if (!product) throw new NotFoundException('Mahsulot topilmadi');
+      if (+product.count === 0) {
+        throw new BadRequestException({
+          message: 'Kechirasiz, bu mahsulot tugagan',
+          product,
+        });
+      }
+      product.count = String(+product.count - 1); // Mahsulot sonidan ayirish
+      totalSum += +product.price; // Umumiy summani hisoblash
+      await product.save();
+    }
+
+    return totalSum;
+  }
+
+  // To‘lov turini tekshirish funksiyasi
+  private validatePaymentType(paytype: string): void {
+    const validTypes = ['cash', 'card', 'credit'];
+    if (!validTypes.includes(paytype.toLowerCase())) {
+      throw new BadRequestException('Noto‘g‘ri to‘lov turi');
+    }
+  }
+
+  // Chegirma hisoblash funksiyasi
+  private applyDiscount(summa: number, discount: number): number {
+    if (discount < 0) {
+      throw new BadRequestException('Noto‘g‘ri chegirma qiymati');
+    }
+    if (discount > 0) {
+      return summa - (summa / 100) * discount; // Chegirma qo‘llash
+    }
+    return summa;
+  }
+
+  // Shartnoma yaratish funksiyasi
   async create(createContractDto: CreateContractDto, token: string) {
-    const type = ['cash', 'card', 'credit'];
     const { product, discount, paytype } = createContractDto;
 
-    // Mahsulot IDlarini tekshirish va jamlash
-    let summa = 0;
-    for (const item of product) {
-      checkId(item);
-      const findProd = await this.productModel.findById(item);
-      if (!findProd) throw new NotFoundException('Mahsulot topilmadi');
-      // Mahsulot bor yoqligni tekshirish
-      if (+findProd.count == 0)
-        throw new BadRequestException({
-          message: 'Kechirasiz bu mahsulot tugagan',
-          product: findProd,
-        });
-      // Mahsulot sonidan ayirish
-      findProd.count = String(+findProd.count - 1);
-      summa += +findProd.price;
-      await findProd.save();
-    }
+    const totalSum = await this.findAndValidateProduct(product);
 
-    const findClient = await this.clientModel.findOne({
-      phone_number: createContractDto.client,
-    });
-    if (!findClient) throw new NotFoundException('Mijoz topilmadi');
+    const client = await this.findClientByPhoneNumber(createContractDto.client);
 
-    // Admin tokenini dekodlash
     const adminId = await this.decodeToken(token);
-    checkId(adminId);
-    const findAdmin = await this.adminModel.findById(adminId);
-    if (!findAdmin) throw new NotFoundException('Admin topilmadi');
+    const admin = await this.findAdminById(adminId);
 
-    // To'lov turini tekshirish
-    const bool = type.includes(paytype.toLowerCase());
-    if (!bool) throw new BadRequestException('Noto‘g‘ri to‘lov turi');
+    this.validatePaymentType(paytype);
 
-    // Chegirma hisoblash
-    if (discount < 0)
-      throw new BadRequestException('Noto‘g‘ri chegirma qiymati');
+    const finalSum = this.applyDiscount(totalSum, discount);
 
-    if (discount > 0) {
-      summa = summa - (summa / 100) * discount;
-      console.log(summa);
-    }
-
-    // Shartnomani yaratish va saqlash
     const contract = new this.contModel({
       product,
-      vendor: findAdmin,
-      client: findClient,
+      vendor: admin,
+      client,
       discount,
       paytype,
-      price: summa,
+      price: finalSum,
     });
+
     await contract.save();
 
     return contract.populate('product');
   }
 
+  // Barcha shartnomalarni olish funksiyasi
   async findAll() {
     return this.contModel.find().populate(['client', 'vendor', 'product']);
   }
 
+  // Bitta shartnomani ID bo‘yicha topish funksiyasi
   async findOne(id: string) {
     checkId(id);
-    const contract = await this.contModel.findById(id);
+    const contract = await this.contModel
+      .findById(id)
+      .populate(['client', 'vendor', 'product']);
     if (!contract) throw new NotFoundException('Shartnoma topilmadi');
     return contract;
   }
 
+  // Shartnomani yangilash funksiyasi
   async update(
     id: string,
     updateContractDto: UpdateContractDto,
@@ -128,15 +164,27 @@ export class ContractService {
     if (!contract) throw new NotFoundException('Shartnoma topilmadi');
 
     const adminId = await this.decodeToken(token);
-    checkId(adminId);
-    const findAdmin = await this.adminModel.findById(adminId);
-    if (!findAdmin) throw new NotFoundException('Admin topilmadi');
+    await this.findAdminById(adminId);
+
+    // Agar yangi mahsulotlar qo‘shilsa, summani qayta hisoblash
+    if (updateContractDto.product) {
+      const totalSum = await this.findAndValidateProduct(
+        updateContractDto.product,
+      );
+      const price = this.applyDiscount(
+        totalSum,
+        updateContractDto.discount || 0,
+      );
+      updateContractDto.price = price.toString();
+    }
 
     Object.assign(contract, updateContractDto);
     await contract.save();
-    return contract;
+
+    return contract.populate(['client', 'vendor', 'product']);
   }
 
+  // Shartnomani o‘chirish funksiyasi
   async remove(id: string) {
     checkId(id);
     const contract = await this.contModel.findById(id);
