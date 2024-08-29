@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   HttpCode,
@@ -30,8 +29,6 @@ import { Product } from './schemas/product.schemas';
 import { SearchProductDto } from './dto/search-product.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AdminGuard } from '../common/guards/AdminGuard';
-import { CreateComponentDto } from './dto/create-component.dto';
-import { UpdateComponentDto } from './dto/update-component.dto';
 
 @ApiTags('products')
 @ApiBearerAuth() // Add this line to enable bearer token authentication
@@ -60,28 +57,6 @@ export class ProductsController {
     @UploadedFile() photo: Express.Multer.File,
   ) {
     return this.productsService.create(createProductDto, photo);
-  }
-
-  @Post('component')
-  @UseGuards(AdminGuard)
-  @UseInterceptors(FileInterceptor('photo'))
-  @ApiOperation({ summary: 'Create a new component' })
-  @ApiResponse({
-    status: 201,
-    description: 'The component has been successfully created.',
-  })
-  @ApiResponse({ status: 400, description: 'Bad Request' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    description: 'Component creation details',
-    type: CreateComponentDto,
-  })
-  @HttpCode(HttpStatus.CREATED)
-  createComponent(
-    @Body() createComponentDto: CreateComponentDto,
-    @UploadedFile() photo: Express.Multer.File,
-  ) {
-    return this.productsService.createComponent(createComponentDto, photo);
   }
 
   @Get('search')
@@ -154,30 +129,6 @@ export class ProductsController {
     @UploadedFile() img: Express.Multer.File,
   ) {
     return this.productsService.update(id, updateProductDto, img);
-  }
-
-  @Patch('component/:id')
-  @UseGuards(AdminGuard)
-  @UseInterceptors(FileInterceptor('photo'))
-  @ApiOperation({ summary: 'Update a component' })
-  @ApiParam({ name: 'id', description: 'Component ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'The component has been successfully updated.',
-  })
-  @ApiResponse({ status: 404, description: 'Component not found' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    description: 'Component update details',
-    type: UpdateComponentDto,
-  })
-  @HttpCode(HttpStatus.OK)
-  updateComponent(
-    @Param('id') id: string,
-    @Body() updateComponentDto: UpdateComponentDto,
-    @UploadedFile() photo: Express.Multer.File,
-  ) {
-    return this.productsService.updateComp(id, updateComponentDto, photo);
   }
 
   @Delete(':id')

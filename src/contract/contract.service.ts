@@ -31,7 +31,7 @@ export class ContractService {
   private async decodeToken(token: string): Promise<string> {
     const [bearer, tkn] = token.split(' ');
 
-    // Token formati to'g'ri ekanligini tekshirish
+    // Token formatini tekshirish
     if (bearer !== 'Bearer' || !tkn) {
       throw new UnauthorizedException('Noto‘g‘ri token formati');
     }
@@ -42,22 +42,26 @@ export class ContractService {
         secret: this.configService.get<string>('JWT_ACCESS_TOKEN'),
       });
       return decoded.id;
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Noto‘g‘ri token');
     }
   }
 
-  // Adminni ID bo‘yicha topish funksiyasi
-  private async findAdminById(adminId: string): Promise<Admin> {
-    checkId(adminId);
-    const admin = await this.adminModel.findById(adminId);
-    if (!admin) {
-      throw new NotFoundException('Admin topilmadi');
+  // Berilgan model va ID orqali entitini topish
+  private async findEntityById<T>(
+    model: Model<T>,
+    id: string,
+    entityName: string,
+  ): Promise<T> {
+    checkId(id); // ID ni tekshirish
+    const entity = await model.findById(id);
+    if (!entity) {
+      throw new NotFoundException(`${entityName} topilmadi`);
     }
-    return admin;
+    return entity;
   }
 
-  // Telefon raqam bo‘yicha mijozni topish funksiyasi
+  // Telefon raqami bo‘yicha mijozni topish funksiyasi
   private async findClientByPhoneNumber(phoneNumber: string): Promise<Client> {
     const client = await this.clientModel.findOne({
       phone_number: phoneNumber,
@@ -69,13 +73,15 @@ export class ContractService {
   }
 
   // Mahsulot IDlarini tekshirish va summani hisoblash funksiyasi
-  private async findAndValidateProduct(productIds: string[]): Promise<number> {
+  private async findAndValidateProducts(productIds: string[]): Promise<number> {
     let totalSum = 0;
 
     for (const itemId of productIds) {
-      checkId(itemId);
-      const product = await this.productModel.findById(itemId);
-      if (!product) throw new NotFoundException('Mahsulot topilmadi');
+      const product = await this.findEntityById(
+        this.productModel,
+        itemId,
+        'Mahsulot',
+      );
       if (+product.count === 0) {
         throw new BadRequestException({
           message: 'Kechirasiz, bu mahsulot tugagan',
@@ -84,7 +90,7 @@ export class ContractService {
       }
       product.count = String(+product.count - 1); // Mahsulot sonidan ayirish
       totalSum += +product.price; // Umumiy summani hisoblash
-      await product.save();
+      await product.save(); // Mahsulotni saqlash
     }
 
     return totalSum;
@@ -103,39 +109,34 @@ export class ContractService {
     if (discount < 0) {
       throw new BadRequestException('Noto‘g‘ri chegirma qiymati');
     }
-    if (discount > 0) {
-      return summa - (summa / 100) * discount; // Chegirma qo‘llash
-    }
-    return summa;
+    return discount > 0 ? summa - (summa / 100) * discount : summa; // Chegirma qo‘llash
   }
 
   // Shartnoma yaratish funksiyasi
   async create(createContractDto: CreateContractDto, token: string) {
     const { product, discount, paytype } = createContractDto;
 
-    const totalSum = await this.findAndValidateProduct(product);
-
+    // Mahsulotlar bo‘yicha umumiy summani hisoblash
+    const totalSum = await this.findAndValidateProducts(product);
     const client = await this.findClientByPhoneNumber(createContractDto.client);
+    const adminId = await this.decodeToken(token); // Tokenni dekodlash
+    await this.findEntityById(this.adminModel, adminId, 'Admin'); // Adminni topish
 
-    const adminId = await this.decodeToken(token);
-    const admin = await this.findAdminById(adminId);
+    this.validatePaymentType(paytype); // To‘lov turini tekshirish
+    const finalSum = this.applyDiscount(totalSum, discount); // Chegirma qo‘llash
 
-    this.validatePaymentType(paytype);
-
-    const finalSum = this.applyDiscount(totalSum, discount);
-
-    const contract = new this.contModel({
+    // Yangi shartnoma yaratish
+    const contract = await this.contModel.create({
       product,
-      vendor: admin,
+      vendor: adminId,
       client,
       discount,
       paytype,
       price: finalSum,
     });
 
-    await contract.save();
-
-    return contract.populate('product');
+    await contract.populate('product'); // Mahsulotni populatsiya qilish
+    return contract; // Yangi shartnomani qaytarish
   }
 
   // Barcha shartnomalarni olish funksiyasi
@@ -145,81 +146,60 @@ export class ContractService {
 
   // Bitta shartnomani ID bo‘yicha topish funksiyasi
   async findOne(id: string) {
-    checkId(id);
-    const contract = await this.contModel
-      .findById(id)
-      .populate(['client', 'vendor', 'product']);
-    if (!contract) throw new NotFoundException('Shartnoma topilmadi');
-    return contract;
+    const contract = await this.findEntityById(this.contModel, id, 'Shartnoma');
+
+    return contract.populate(['client', 'vendor', 'product']);
   }
 
-  // Shartnomani yangilash funksiyasi
   // Shartnomani yangilash funksiyasi
   async update(
     id: string,
     updateContractDto: UpdateContractDto,
     token: string,
   ) {
-    checkId(id);
-    const contract = await this.contModel.findById(id);
-    if (!contract) throw new NotFoundException('Shartnoma topilmadi');
+    const contract = await this.findEntityById(this.contModel, id, 'Shartnoma'); // Shartnomani topish
 
-    const adminId = await this.decodeToken(token);
-    await this.findAdminById(adminId);
+    const adminId = await this.decodeToken(token); // Tokenni dekodlash va adminni tekshirish
+    await this.findEntityById(this.adminModel, adminId, 'Admin');
 
-    // Initialize variables to hold values for calculations
-    let totalSum = 0;
-    let clientId;
+    // Mijozni telefon raqami orqali topish yoki mavjud mijozni saqlash
+    const clientId = updateContractDto.client
+      ? await this.findClientByPhoneNumber(updateContractDto.client)
+      : contract.client;
 
-    // If a client phone number is provided, validate and get the client
-    if (updateContractDto.client) {
-      const client = await this.findClientByPhoneNumber(
-        updateContractDto.client,
-      );
-      clientId = client; // Use the ObjectId of the client
-    } else {
-      clientId = contract.client; // Keep existing client if no new client is provided
-    }
+    // Mahsulotlar yangilansa, umumiy summani qayta hisoblash
+    const totalSum = updateContractDto.product
+      ? await this.findAndValidateProducts(updateContractDto.product)
+      : contract.price; // Mavjud shartnoma summasini saqlash
 
-    // If new products are provided, recalculate the total sum
-    if (updateContractDto.product) {
-      totalSum = await this.findAndValidateProduct(updateContractDto.product);
-    } else {
-      // If no new products, maintain the existing totalSum or calculate based on current products
-      totalSum = contract.price; // Consider current contract price if no new products are added
-    }
-
-    // Validate the payment type
+    // To‘lov turini tekshirish
     if (updateContractDto.paytype) {
       this.validatePaymentType(updateContractDto.paytype);
     } else {
-      updateContractDto.paytype = contract.paytype; // Keep existing payment type if not updated
+      updateContractDto.paytype = contract.paytype; // Mavjud to‘lov turini saqlash
     }
 
-    // Calculate the final price considering discounts
+    // Chegirma hisoblash
     const finalSum = this.applyDiscount(
       totalSum,
       updateContractDto.discount || 0,
     );
-    updateContractDto.price = finalSum.toString(); // Update price with the final calculated sum
+    updateContractDto.price = finalSum.toString(); // Yangilangan summani saqlash
 
-    // Create the updated contract object
+    // Yangilangan shartnomani yaratish
     const updatedContract = Object.assign(contract, {
       ...updateContractDto,
-      client: clientId, // Ensure client ID is set properly
+      client: clientId,
     });
 
-    await updatedContract.save();
-
-    return updatedContract.populate(['client', 'vendor', 'product']);
+    await updatedContract.save(); // Yangilangan shartnomani saqlash
+    return updatedContract.populate(['client', 'vendor', 'product']); // Mahsulotni populatsiya qilish
   }
 
   // Shartnomani o‘chirish funksiyasi
   async remove(id: string) {
-    checkId(id);
-    const contract = await this.contModel.findById(id);
-    if (!contract) throw new NotFoundException('Shartnoma topilmadi');
-    await this.contModel.deleteOne({ _id: id }).exec();
-    return { message: 'Shartnoma muvaffaqiyatli o‘chirildi' };
+    await this.findEntityById(this.contModel, id, 'Shartnoma'); // Shartnomani topish
+    await this.contModel.deleteOne({ _id: id }).exec(); // Shartnomani o‘chirish
+    return { message: 'Shartnoma muvaffaqiyatli o‘chirildi' }; // Muvaffaqiyatli xabar
   }
 }

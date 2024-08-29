@@ -1,4 +1,3 @@
-import { CreateComponentDto } from './dto/create-component.dto';
 import {
   BadRequestException,
   Injectable,
@@ -13,7 +12,6 @@ import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { SearchProductDto } from './dto/search-product.dto';
 import { Category } from '../category/schemas/category.schemas';
 import { checkId } from '../common/utils/check-mongodbId';
-import { UpdateComponentDto } from './dto/update-component.dto';
 
 @Injectable()
 export class ProductsService {
@@ -35,17 +33,6 @@ export class ProductsService {
     return (
       await this.productModel.create({ img: photo, ...createProductDto })
     ).populate('category');
-  }
-
-  // Zapchastlarni yaratish
-
-  async createComponent(
-    createComponentDto: CreateComponentDto,
-    img: Express.Multer.File,
-  ) {
-    if (!img) throw new BadRequestException('Image is requirred!');
-    const photo = (await this.cloudinaryService.uploadImage(img)).secure_url;
-    return this.productModel.create({ img: photo, ...createComponentDto });
   }
 
   async filterProduct(searchProductDto: SearchProductDto): Promise<Product[]> {
@@ -171,31 +158,6 @@ export class ProductsService {
     delete findProd.category.products;
 
     return findProd;
-  }
-
-  async updateComp(
-    id: string,
-    updateComponentDto: UpdateComponentDto,
-    img?: Express.Multer.File,
-  ) {
-    const findProd = await this.productModel.findById(id);
-    if (!findProd) throw new NotFoundException('Mahsulot topilmadi!');
-    let photo: any;
-    if (img) {
-      photo = await this.cloudinaryService.uploadImage(img);
-      await this.cloudinaryService.removeImageByUrl(findProd.img);
-    }
-
-    const data = await this.productModel.findByIdAndUpdate(
-      id,
-      {
-        img: photo.secure_url,
-        ...updateComponentDto,
-      },
-      { new: true },
-    );
-
-    return { message: 'Yangilandi!', data };
   }
 
   async update(

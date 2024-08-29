@@ -16,18 +16,13 @@ export class SuperAdminGuard implements CanActivate {
     const req = context.switchToHttp().getRequest();
     const authHeader = req.headers.authorization;
 
-    if (!authHeader) {
+    if (!this.isValidAuthorizationHeader(authHeader)) {
       throw new UnauthorizedException('Foydalanuvchi avtorizatsiya qilinmagan');
     }
 
-    // Ensure the header starts with 'Bearer '
-    const [bearer, token] = authHeader.split(' ');
-    if (bearer !== 'Bearer' || !token) {
-      throw new UnauthorizedException('Foydalanuvchi avtorizatsiya qilinmagan');
-    }
+    const token = authHeader.split(' ')[1];
 
     try {
-      // Verify the token
       const user: Partial<Admin> = await this.jwtService.verify(token, {
         secret: process.env.JWT_ACCESS_TOKEN,
       });
@@ -38,10 +33,12 @@ export class SuperAdminGuard implements CanActivate {
 
       return true;
     } catch (error) {
-      // Log the error to debug
       console.error('Token Verification Error:', error);
-
       throw new NotAcceptableException("Bunday huquqingiz yo'q");
     }
+  }
+
+  private isValidAuthorizationHeader(authHeader: string | undefined): boolean {
+    return authHeader && authHeader.startsWith('Bearer ');
   }
 }
