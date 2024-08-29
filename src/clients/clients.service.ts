@@ -123,22 +123,34 @@ export class ClientsService {
     checkId(id);
     checkId(adminId);
 
+    // Find the admin
     const admin = await this.adminModel.findById(adminId);
     if (!admin) throw new NotFoundException('Admin topilmadi');
 
+    // Find the client
     const client = await this.clientModel.findById(id);
     if (!client) throw new NotFoundException('Mijoz topilmadi');
 
+    // If the admin is a super admin, they can delete any client
+    if (admin.super) {
+      await this.clientModel.findByIdAndDelete(id);
+      return { message: 'Mijoz o`chirildi!' };
+    }
+
+    // Check if the client belongs to the admin
     if (!admin.clients.includes(client.id)) {
       throw new UnauthorizedException('Sizda ruxsat yo`q');
     }
 
-    const clients = admin.clients.filter(
-      (clientId) => clientId.toString() !== client.id.toString(),
+    // Remove the client from the admin's clients list
+    admin.clients = admin.clients.filter(
+      (clientId) => clientId.toString() !== client._id.toString(),
     );
 
-    admin.clients = clients;
+    // Save the updated admin document
     await admin.save();
+
+    // Delete the client
     await this.clientModel.findByIdAndDelete(id);
 
     return { message: 'Mijoz o`chirildi!' };
