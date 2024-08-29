@@ -16,60 +16,49 @@ import { checkId } from '../common/utils/check-mongodbId';
 @Injectable()
 export class ProductsService {
   constructor(
-    @InjectModel(Product.name) private productModel: Model<Product>,
-    @InjectModel(Category.name) private categoryModel: Model<Category>,
-
-    private cloudinaryService: CloudinaryService,
+    @InjectModel(Product.name) private readonly productModel: Model<Product>,
+    @InjectModel(Category.name) private readonly categoryModel: Model<Category>,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
+
   async create(createProductDto: CreateProductDto, img: Express.Multer.File) {
-    if (!img) throw new BadRequestException('Image is requirred!');
-    const photo = (await this.cloudinaryService.uploadImage(img)).secure_url;
-
-    checkId(createProductDto.category);
-    const findCategory = await this.categoryModel.findById(
-      createProductDto.category,
-    );
-    if (!findCategory) throw new NotFoundException('Kategoriya topilmadi');
-    return (
-      await this.productModel.create({ img: photo, ...createProductDto })
-    ).populate('category');
-  }
-
-  async filterProduct(searchProductDto: SearchProductDto): Promise<Product[]> {
-    const { query } = searchProductDto;
-
-    // Ensure query is a string and not empty
-    const searchQuery = typeof query === 'string' ? query : '';
-
-    // If the search query is empty, return an empty array
-    if (!searchQuery) {
-      return this.productModel.find().populate('category');
+    if (!img) {
+      throw new BadRequestException('Rasm talab qilinadi!');
     }
 
-    // Aggregation pipeline for filtering products based on category name only
-    const pipeline = [
+    const photoUrl = (await this.cloudinaryService.uploadImage(img)).secure_url;
+
+    checkId(createProductDto.category);
+    const category = await this.categoryModel.findById(
+      createProductDto.category,
+    );
+    if (!category) {
+      throw new NotFoundException('Kategoriya topilmadi');
+    }
+
+    const newProduct = await this.productModel.create({
+      img: photoUrl,
+      ...createProductDto,
+    });
+
+    return newProduct.populate('category');
+  }
+  async filterProduct(searchProductDto: SearchProductDto): Promise<Product[]> {
+    const { query } = searchProductDto;
+    const searchQuery = typeof query === 'string' ? query.trim() : '';
+
+    const pipeline: any[] = [
       {
         $lookup: {
-          from: 'categories', // The collection name for categories
-          localField: 'category', // Field in products collection
-          foreignField: '_id', // Field in categories collection
-          as: 'categoryInfo', // Alias for the joined data
+          from: 'categories',
+          localField: 'category',
+          foreignField: '_id',
+          as: 'categoryInfo',
         },
       },
-      {
-        $unwind: {
-          path: '$categoryInfo', // Flatten the categoryInfo array
-          preserveNullAndEmptyArrays: true, // Keep products without category
-        },
-      },
-      {
-        $match: {
-          'categoryInfo.name': { $regex: searchQuery, $options: 'i' }, // Match by category name (case insensitive)
-        },
-      },
+      { $unwind: { path: '$categoryInfo', preserveNullAndEmptyArrays: true } },
       {
         $project: {
-          // Define the fields to include in the output
           _id: 1,
           img: 1,
           marka: 1,
@@ -85,52 +74,49 @@ export class ProductsService {
       },
     ];
 
-    // Execute the aggregation pipeline
+    // Agar qidiruv so'rovi mavjud bo'lsa, $match bosqichini qo'shing
+    if (searchQuery) {
+      pipeline.splice(2, 0, {
+        $match: {
+          'categoryInfo.name': { $regex: searchQuery, $options: 'i' },
+        },
+      });
+    }
+
     const products = await this.productModel.aggregate(pipeline).exec();
-
-    // Log the found products for debugging
-    console.log('Products Found:', products);
-
-    return products; // Returns [] if no matches
+    console.log('Topilgan mahsulotlar:', products);
+    return products;
   }
 
-  // qidiruv
   async search(searchProductDto: SearchProductDto): Promise<Product[]> {
-    let { query } = searchProductDto;
+    const { query } = searchProductDto;
+    const searchQuery = typeof query === 'string' ? query.trim() : '';
 
-    // Ensure query is a string
-    query = typeof query === 'string' ? query : '';
-
-    // Aggregation pipeline for searching by category.name
     const pipeline = [
       {
         $lookup: {
-          from: 'categories', // The collection name for categories
-          localField: 'category', // Field in products collection
-          foreignField: '_id', // Field in categories collection
-          as: 'categoryInfo', // Alias for the joined data
+          from: 'categories',
+          localField: 'category',
+          foreignField: '_id',
+          as: 'categoryInfo',
         },
       },
-      {
-        $unwind: '$categoryInfo', // Flatten the categoryInfo array
-      },
+      { $unwind: '$categoryInfo' },
       {
         $match: {
           $or: [
-            { marka: { $regex: query, $options: 'i' } },
-            { kwt: { $regex: query, $options: 'i' } },
-            { turnover: { $regex: query, $options: 'i' } },
-            { location: { $regex: query, $options: 'i' } },
-            { m3: { $regex: query, $options: 'i' } },
-            { mh: { $regex: query, $options: 'i' } },
-
-            { 'categoryInfo.name': { $regex: query, $options: 'i' } }, // Search by category name
+            { marka: { $regex: searchQuery, $options: 'i' } },
+            { kwt: { $regex: searchQuery, $options: 'i' } },
+            { turnover: { $regex: searchQuery, $options: 'i' } },
+            { location: { $regex: searchQuery, $options: 'i' } },
+            { m3: { $regex: searchQuery, $options: 'i' } },
+            { mh: { $regex: searchQuery, $options: 'i' } },
+            { 'categoryInfo.name': { $regex: searchQuery, $options: 'i' } },
           ],
         },
       },
       {
         $project: {
-          // Optional: Define the fields to include in the output
           _id: 1,
           img: 1,
           marka: 1,
@@ -146,18 +132,22 @@ export class ProductsService {
       },
     ];
 
-    const products = await this.productModel.aggregate(pipeline).exec();
-
-    return products;
+    return this.productModel.aggregate(pipeline).exec();
   }
 
   async findOne(id: string) {
     checkId(id);
-    const findProd = await this.productModel.findById(id).populate('category');
-    if (!findProd) throw new NotFoundException('Mahsulot topilmadi!');
-    delete findProd.category.products;
+    const product = await this.productModel.findById(id).populate('category');
+    if (!product) {
+      throw new NotFoundException('Mahsulot topilmadi!');
+    }
 
-    return findProd;
+    // Javobdan category ichidagi products arrayini o'chirish
+    if (product.category && 'products' in product.category) {
+      product.category.products = undefined;
+    }
+
+    return product;
   }
 
   async update(
@@ -166,33 +156,47 @@ export class ProductsService {
     img?: Express.Multer.File,
   ) {
     checkId(id);
-    const findProd = await this.productModel.findById(id).populate('category');
-    if (!findProd) throw new NotFoundException('Mahsulot topilmadi!');
-    let photo: any;
-    if (img) {
-      photo = await this.cloudinaryService.uploadImage(img);
-      await this.cloudinaryService.removeImageByUrl(findProd.img);
+    const product = await this.productModel.findById(id);
+    if (!product) {
+      throw new NotFoundException('Mahsulot topilmadi!');
     }
+
+    if (img) {
+      const photoUrl = (await this.cloudinaryService.uploadImage(img))
+        .secure_url;
+      await this.cloudinaryService.removeImageByUrl(product.img);
+      updateProductDto.img = photoUrl;
+    }
+
     if (updateProductDto.category) {
       checkId(updateProductDto.category);
-      const find = await this.categoryModel.findById(updateProductDto.category);
-      if (!find) throw new NotFoundException('Kategoriya topilmadi!');
+      const category = await this.categoryModel.findById(
+        updateProductDto.category,
+      );
+      if (!category) {
+        throw new NotFoundException('Kategoriya topilmadi!');
+      }
     }
-    const data = await this.productModel.findByIdAndUpdate(
+
+    const updatedProduct = await this.productModel.findByIdAndUpdate(
       id,
-      {
-        img: photo.secure_url,
-        ...updateProductDto,
-      },
+      { ...updateProductDto },
       { new: true },
     );
-    return { message: 'Yangilandi!', data };
+
+    return {
+      message: 'Mahsulot muvaffaqiyatli yangilandi!',
+      data: updatedProduct,
+    };
   }
 
   async remove(id: string) {
     checkId(id);
-    const findProd = await this.productModel.findById(id);
-    if (!findProd) throw new NotFoundException('Mahsulot topilmadi!');
+    const product = await this.productModel.findById(id);
+    if (!product) {
+      throw new NotFoundException('Mahsulot topilmadi!');
+    }
     await this.productModel.findByIdAndDelete(id);
+    return { message: 'Mahsulot muvaffaqiyatli o‘chirildi!' };
   }
 }
